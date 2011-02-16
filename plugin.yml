@@ -1,0 +1,3 @@
+name: AfkBooter
+main: com.runicsystems.bukkit.AfkBooter.AfkBooter
+version: 0.1
