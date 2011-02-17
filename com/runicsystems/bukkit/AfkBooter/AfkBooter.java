@@ -26,7 +26,8 @@ import java.util.logging.Logger;
  *
  * @author neromir
  */
-public class AfkBooter extends JavaPlugin {
+public class AfkBooter extends JavaPlugin
+{
     private final AfkBooterPlayerListener playerListener = new AfkBooterPlayerListener(this);
     private final AfkBooterBlockListener blockListener = new AfkBooterBlockListener(this);
     // Defaults to check every 10 seconds.
@@ -44,7 +45,8 @@ public class AfkBooter extends JavaPlugin {
     private Logger logger;
 
     public AfkBooter(PluginLoader pluginLoader, Server instance, PluginDescriptionFile desc, File folder, File plugin,
-                     ClassLoader cLoader) {
+                     ClassLoader cLoader)
+    {
         super(pluginLoader, instance, desc, folder, plugin, cLoader);
 
         settings = new AfkBooterSettings(this);
@@ -56,7 +58,8 @@ public class AfkBooter extends JavaPlugin {
         // NOTE: Event registration should be done in onEnable not here as all events are unregistered when a plugin is disabled
     }
 
-    public void onEnable() {
+    public void onEnable()
+    {
         logger = Logger.getLogger("Minecraft");
 
         settings.init(getDataFolder());
@@ -77,7 +80,8 @@ public class AfkBooter extends JavaPlugin {
         log("version " + pdfFile.getVersion() + " is loaded.", Level.INFO);
         String exemptPlayers = "";
         List<String> exemptPlayerList = settings.getExemptPlayers();
-        for (int i = 0; i < exemptPlayerList.size(); i++) {
+        for (int i = 0; i < exemptPlayerList.size(); i++)
+        {
             exemptPlayers += exemptPlayerList.get(i);
 
             if (i < exemptPlayerList.size() - 1)
@@ -94,21 +98,24 @@ public class AfkBooter extends JavaPlugin {
         pm.registerEvent(Event.Type.PLAYER_COMMAND, playerListener, Priority.Monitor, this);
     }
 
-    public void onDisable() {
+    public void onDisable()
+    {
         lastPlayerActivity.clear();
 
         threadedTimer.setAborted(true);
         // NOTE: All registered events are automatically unregistered when a plugin is disabled
 
-        settings.saveSettings(getDataFolder());
+        //settings.saveSettings(getDataFolder());
 
         log("Shutting down AfkBooter.", Level.INFO);
     }
 
-    public void kickAfkPlayers() {
+    public void kickAfkPlayers()
+    {
         // Get the current time and then iterate across all tracked players.
         long now = System.currentTimeMillis();
-        if (!playersToKick.isEmpty()) {
+        if (!playersToKick.isEmpty())
+        {
             log("Attempting to re-check for players to kick too soon. Please set interval higher.", Level.INFO);
             return;
         }
@@ -117,7 +124,8 @@ public class AfkBooter extends JavaPlugin {
             log("No players in tracking map.", Level.FINEST);
 
         Set<Map.Entry<String, Long>> trackedPlayers = lastPlayerActivity.entrySet();
-        for (Map.Entry<String, Long> activityEntry : trackedPlayers) {
+        for (Map.Entry<String, Long> activityEntry : trackedPlayers)
+        {
             // If player's last active time + the kick allowance time is earlier than
             // the current time, boot them-- they've been idle too long.
             if ((activityEntry.getValue() + (kickTimeout * 1000)) < now)
@@ -128,11 +136,13 @@ public class AfkBooter extends JavaPlugin {
             getServer().getScheduler().scheduleSyncDelayedTask(this, new PlayerKicker());
     }
 
-    public void log(String logMessage, Level logLevel) {
+    public void log(String logMessage, Level logLevel)
+    {
         logger.log(logLevel, "[AfkBooter] " + logMessage);
     }
 
-    public void recordPlayerActivity(String playerName) {
+    public void recordPlayerActivity(String playerName)
+    {
         // Don't even record them if their name is on the exempt list.
         if (settings.getExemptPlayers().contains(playerName))
             return;
@@ -141,18 +151,23 @@ public class AfkBooter extends JavaPlugin {
         lastPlayerActivity.put(playerName, now);
     }
 
-    public void stopTrackingPlayer(String playerName) {
+    public void stopTrackingPlayer(String playerName)
+    {
         lastPlayerActivity.remove(playerName);
     }
 
     /**
      * Used for the delayed task of kicking players for thread safety.
      */
-    public class PlayerKicker implements Runnable {
-        public void run() {
-            for (String playerName : playersToKick) {
+    public class PlayerKicker implements Runnable
+    {
+        public void run()
+        {
+            for (String playerName : playersToKick)
+            {
                 Player player = getServer().getPlayer(playerName);
-                if (player != null) {
+                if (player != null)
+                {
                     log("Kicking player " + playerName, Level.INFO);
                     // Stop tracking them, since we're booting them.
                     lastPlayerActivity.remove(playerName);
@@ -176,27 +191,32 @@ public class AfkBooter extends JavaPlugin {
      *
      * @param dataFolder The config folder location.
      */
-    private void firstRunSettings(File dataFolder) {
+    private void firstRunSettings(File dataFolder)
+    {
         log("Configuration file not found, creating new one.", Level.INFO);
         if (!dataFolder.mkdirs())
             log("Failed creating settings directory!", Level.SEVERE);
 
         File configFile = new File(dataFolder, "config.yml");
-        try {
+        try
+        {
             if (!configFile.createNewFile())
                 throw new IOException("Failed file creation");
         }
-        catch (IOException e) {
+        catch (IOException e)
+        {
             log("Could not create config file!", Level.SEVERE);
         }
 
         writeSettings(configFile);
     }
 
-    private void writeSettings(File configFile) {
+    private void writeSettings(File configFile)
+    {
         FileWriter fileWriter = null;
         BufferedWriter bufferWriter = null;
-        try {
+        try
+        {
             if (!configFile.exists())
                 configFile.createNewFile();
 
@@ -218,13 +238,17 @@ public class AfkBooter extends JavaPlugin {
             bufferWriter.newLine();
             bufferWriter.flush();
         }
-        catch (IOException e) {
+        catch (IOException e)
+        {
             log("Caught exception while writing settings to file: ", Level.SEVERE);
             e.printStackTrace();
         }
-        finally {
-            try {
-                if (bufferWriter != null) {
+        finally
+        {
+            try
+            {
+                if (bufferWriter != null)
+                {
                     bufferWriter.flush();
                     bufferWriter.close();
                 }
@@ -232,7 +256,8 @@ public class AfkBooter extends JavaPlugin {
                 if (fileWriter != null)
                     fileWriter.close();
             }
-            catch (IOException e) {
+            catch (IOException e)
+            {
                 log("IO Exception writing file: " + configFile.getName(), Level.SEVERE);
             }
         }
