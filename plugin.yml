@@ -1,3 +1,16 @@
 name: AfkBooter
 main: com.runicsystems.bukkit.AfkBooter.AfkBooter
 version: 0.1
+author: Neromir
+
+commands:
+  afkbooter:
+    description: Main command for all of the AfkBooter plugin.
+    usage: |
+           /<command> kickTimeout, /<command> kickMessage
+           Example: /<command> kickTimeout [number] - Changes the idle time (sec) allowed before players are kicked.
+           Example: /<command> kickMessage [message] - Changes the message a kicked player sees.
+           Example: /<command> kickBroadcast [message] - Changes the message broadcast to all players when someone is kicked.
+           Example: /<command> listExempt - List the players on the exempt list.
+           Example: /<command> addExempt [playerName] - Add a player to the exempt list.
+           Example: /<command> removeExempt [playerName] - Remove a player from the exempt list.

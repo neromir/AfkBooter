@@ -1,6 +1,9 @@
 package com.runicsystems.bukkit.AfkBooter;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Server;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
@@ -13,10 +16,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,11 +80,11 @@ public class AfkBooter extends JavaPlugin
         log("version " + pdfFile.getVersion() + " is loaded.", Level.INFO);
         String exemptPlayers = "";
         List<String> exemptPlayerList = settings.getExemptPlayers();
-        for (int i = 0; i < exemptPlayerList.size(); i++)
+        for(int i = 0; i < exemptPlayerList.size(); i++)
         {
             exemptPlayers += exemptPlayerList.get(i);
 
-            if (i < exemptPlayerList.size() - 1)
+            if(i < exemptPlayerList.size() - 1)
                 exemptPlayers += ", ";
         }
         log("Kick timeout " + kickTimeout + " sec, exempt players: " + exemptPlayers, Level.INFO);
@@ -105,8 +105,6 @@ public class AfkBooter extends JavaPlugin
         threadedTimer.setAborted(true);
         // NOTE: All registered events are automatically unregistered when a plugin is disabled
 
-        //settings.saveSettings(getDataFolder());
-
         log("Shutting down AfkBooter.", Level.INFO);
     }
 
@@ -114,26 +112,226 @@ public class AfkBooter extends JavaPlugin
     {
         // Get the current time and then iterate across all tracked players.
         long now = System.currentTimeMillis();
-        if (!playersToKick.isEmpty())
+        if(!playersToKick.isEmpty())
         {
             log("Attempting to re-check for players to kick too soon. Please set interval higher.", Level.INFO);
             return;
         }
 
-        if (lastPlayerActivity.size() < 1)
+        if(lastPlayerActivity.size() < 1)
             log("No players in tracking map.", Level.FINEST);
 
         Set<Map.Entry<String, Long>> trackedPlayers = lastPlayerActivity.entrySet();
-        for (Map.Entry<String, Long> activityEntry : trackedPlayers)
+        for(Map.Entry<String, Long> activityEntry : trackedPlayers)
         {
             // If player's last active time + the kick allowance time is earlier than
             // the current time, boot them-- they've been idle too long.
-            if ((activityEntry.getValue() + (kickTimeout * 1000)) < now)
+            if((activityEntry.getValue() + (kickTimeout * 1000)) < now)
                 playersToKick.add(activityEntry.getKey());
         }
 
-        if (!playersToKick.isEmpty())
+        if(!playersToKick.isEmpty())
             getServer().getScheduler().scheduleSyncDelayedTask(this, new PlayerKicker());
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args)
+    {
+        String commandName = cmd.getName().toLowerCase();
+
+        if(commandName.equals("afkbooter") && args.length > 0)
+        {
+            String subCommand = args[0];
+            subCommand = subCommand.toLowerCase();
+            ArrayList<String> subCommandArgs = new ArrayList<String>();
+            subCommandArgs.addAll(Arrays.asList(args).subList(1, args.length));
+
+            if(subCommand.equals("kicktimeout"))
+                return handleKickTimeoutCommand(sender, subCommandArgs);
+            else if(subCommand.equals("kickmessage"))
+                return handleKickMessageCommand(sender, subCommandArgs);
+            else if(subCommand.equals("kickbroadcast"))
+                return handleKickBroadcastCommand(sender, subCommandArgs);
+            else if(subCommand.equals("addexempt"))
+                return handleAddExemptPlayerCommand(sender, subCommandArgs);
+            else if(subCommand.equals("removeexempt"))
+                return handleRemoveExemptPlayerCommand(sender, subCommandArgs);
+            else if(subCommand.equals("listexempt"))
+                return handleListExemptCommand(sender, subCommandArgs);
+        }
+
+        return false;
+    }
+
+    private boolean handleKickTimeoutCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() != 1)
+            return false;
+
+        if(!sender.isOp())
+        {
+            sender.sendMessage("You do not have permission to change the kick timeout.");
+            return false;
+        }
+
+        int newKickTimeout;
+        try
+        {
+            newKickTimeout = Integer.parseInt(args.get(0));
+        }
+        catch(NumberFormatException e)
+        {
+            sender.sendMessage(ChatColor.RED + "'" + args.get(0) + "' is not a number.");
+            return false;
+        }
+
+        settings.setKickTimeout(newKickTimeout);
+        sender.sendMessage("Kick timeout changed to " + newKickTimeout + " sec.");
+        log("Kick timeout changed to " + newKickTimeout + " sec.", Level.INFO);
+
+        threadedTimer.setTimeToSleep(newKickTimeout);
+        settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
+    private boolean handleKickMessageCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() < 1)
+            return false;
+
+        if(!sender.isOp())
+        {
+            sender.sendMessage("You do not have permission to change the kick message.");
+            return false;
+        }
+
+        String newKickMessage = "";
+        for(String messagePart : args)
+        {
+            newKickMessage += messagePart + " ";
+        }
+
+        newKickMessage = newKickMessage.trim();
+        settings.setKickMessage(newKickMessage);
+        sender.sendMessage("Kick message changed to \"" + newKickMessage + "\"");
+        log("Kick message changed to \"" + newKickMessage + "\"", Level.INFO);
+
+        settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
+    private boolean handleKickBroadcastCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() < 1)
+            return false;
+
+        if(!sender.isOp())
+        {
+            sender.sendMessage("You do not have permission to change the kick broadcast.");
+            return false;
+        }
+
+        String newKickBroadcast = "";
+        for(String messagePart : args)
+        {
+            newKickBroadcast += messagePart + " ";
+        }
+
+        newKickBroadcast = newKickBroadcast.trim();
+        settings.setKickBroadcastMessage(newKickBroadcast);
+        sender.sendMessage("Kick broadcast message changed to \"" + newKickBroadcast + "\"");
+        log("Kick broadcast message changed to \"" + newKickBroadcast + "\"", Level.INFO);
+
+        settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
+    private boolean handleAddExemptPlayerCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() != 1)
+            return false;
+
+        if(!sender.isOp())
+        {
+            sender.sendMessage("You do not have permission to add exempt players.");
+            return false;
+        }
+
+        String newExemptPlayer = args.get(0).trim();
+
+        if(settings.getExemptPlayers().contains(newExemptPlayer))
+        {
+            sender.sendMessage("Player " + newExemptPlayer + " is already on the exempt list.");
+            return true;
+        }
+
+        settings.addExemptPlayer(newExemptPlayer);
+        if(lastPlayerActivity.contains(newExemptPlayer))
+            lastPlayerActivity.remove(newExemptPlayer);
+        sender.sendMessage("Added player " + newExemptPlayer + " to the exempt list.");
+        log("Added player " + newExemptPlayer + " to the exempt list.", Level.INFO);
+
+        settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
+    private boolean handleRemoveExemptPlayerCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() != 1)
+            return false;
+
+        if(!sender.isOp())
+        {
+            sender.sendMessage("You do not have permission to remove exempt players.");
+            return false;
+        }
+
+        String playerToRemove = args.get(0).trim();
+
+        if(!settings.getExemptPlayers().contains(playerToRemove))
+        {
+            sender.sendMessage("Player " + playerToRemove + " is not on the exempt list.");
+            return true;
+        }
+
+        settings.removeExemptPlayer(playerToRemove);
+        sender.sendMessage("Removed player " + playerToRemove + " from the exempt list.");
+        log("Removed player " + playerToRemove + " from the exempt list.", Level.INFO);
+
+        settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
+    private boolean handleListExemptCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(!args.isEmpty())
+        {
+            return false;
+        }
+
+        if(!sender.isOp())
+        {
+            sender.sendMessage("You do not have permission to see exempt players.");
+            return false;
+        }
+
+        String playerList = "";
+        for(int i = 0; i < settings.getExemptPlayers().size(); i++)
+        {
+            playerList += settings.getExemptPlayers().get(i);
+
+            if(i < settings.getExemptPlayers().size() - 1)
+                playerList += ", ";
+        }
+
+        sender.sendMessage("Exempt players: " + playerList);
+
+        return true;
     }
 
     public void log(String logMessage, Level logLevel)
@@ -144,7 +342,7 @@ public class AfkBooter extends JavaPlugin
     public void recordPlayerActivity(String playerName)
     {
         // Don't even record them if their name is on the exempt list.
-        if (settings.getExemptPlayers().contains(playerName))
+        if(settings.getExemptPlayers().contains(playerName))
             return;
 
         long now = System.currentTimeMillis();
@@ -163,10 +361,10 @@ public class AfkBooter extends JavaPlugin
     {
         public void run()
         {
-            for (String playerName : playersToKick)
+            for(String playerName : playersToKick)
             {
                 Player player = getServer().getPlayer(playerName);
-                if (player != null)
+                if(player != null)
                 {
                     log("Kicking player " + playerName, Level.INFO);
                     // Stop tracking them, since we're booting them.
@@ -174,7 +372,7 @@ public class AfkBooter extends JavaPlugin
                     player.kickPlayer(kickMessage);
 
                     // Don't output the broadcast message if it's set to empty or null.
-                    if (kickBroadcastMessage != null && !kickBroadcastMessage.isEmpty())
+                    if(kickBroadcastMessage != null && !kickBroadcastMessage.isEmpty())
                         getServer().broadcastMessage(playerName + " " + kickBroadcastMessage);
                 }
             }
@@ -194,16 +392,16 @@ public class AfkBooter extends JavaPlugin
     private void firstRunSettings(File dataFolder)
     {
         log("Configuration file not found, creating new one.", Level.INFO);
-        if (!dataFolder.mkdirs())
+        if(!dataFolder.mkdirs())
             log("Failed creating settings directory!", Level.SEVERE);
 
         File configFile = new File(dataFolder, "config.yml");
         try
         {
-            if (!configFile.createNewFile())
+            if(!configFile.createNewFile())
                 throw new IOException("Failed file creation");
         }
-        catch (IOException e)
+        catch(IOException e)
         {
             log("Could not create config file!", Level.SEVERE);
         }
@@ -217,7 +415,7 @@ public class AfkBooter extends JavaPlugin
         BufferedWriter bufferWriter = null;
         try
         {
-            if (!configFile.exists())
+            if(!configFile.exists())
                 configFile.createNewFile();
 
             fileWriter = new FileWriter(configFile);
@@ -238,7 +436,7 @@ public class AfkBooter extends JavaPlugin
             bufferWriter.newLine();
             bufferWriter.flush();
         }
-        catch (IOException e)
+        catch(IOException e)
         {
             log("Caught exception while writing settings to file: ", Level.SEVERE);
             e.printStackTrace();
@@ -247,16 +445,16 @@ public class AfkBooter extends JavaPlugin
         {
             try
             {
-                if (bufferWriter != null)
+                if(bufferWriter != null)
                 {
                     bufferWriter.flush();
                     bufferWriter.close();
                 }
 
-                if (fileWriter != null)
+                if(fileWriter != null)
                     fileWriter.close();
             }
-            catch (IOException e)
+            catch(IOException e)
             {
                 log("IO Exception writing file: " + configFile.getName(), Level.SEVERE);
             }
