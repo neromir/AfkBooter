@@ -1,14 +1,12 @@
 package com.runicsystems.bukkit.AfkBooter;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -44,18 +42,15 @@ public class AfkBooter extends JavaPlugin
 
     private Logger logger;
 
-    public AfkBooter(PluginLoader pluginLoader, Server instance, PluginDescriptionFile desc, File folder, File plugin,
-                     ClassLoader cLoader)
+    public AfkBooter()
     {
-        super(pluginLoader, instance, desc, folder, plugin, cLoader);
+        super();
 
         settings = new AfkBooterSettings(this);
         kickTimeout = settings.DEFAULT_KICK_TIMEOUT;
         kickMessage = settings.DEFAULT_KICK_MESSAGE;
         timeoutCheckInterval = settings.DEFAULT_TIMEOUT_CHECK;
         kickBroadcastMessage = settings.DEFAULT_KICK_BROADCAST;
-
-        // NOTE: Event registration should be done in onEnable not here as all events are unregistered when a plugin is disabled
     }
 
     public void onEnable()
@@ -95,7 +90,7 @@ public class AfkBooter extends JavaPlugin
         pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
         pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
         pm.registerEvent(Event.Type.INVENTORY_OPEN, playerListener, Priority.Monitor, this);
-        pm.registerEvent(Event.Type.PLAYER_COMMAND, playerListener, Priority.Monitor, this);
+        pm.registerEvent(Event.Type.PLAYER_CHAT, playerListener, Priority.Monitor, this);
     }
 
     public void onDisable()

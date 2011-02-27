@@ -1,6 +1,6 @@
 name: AfkBooter
 main: com.runicsystems.bukkit.AfkBooter.AfkBooter
-version: 0.3
+version: 0.4
 author: Neromir
 
 commands:
