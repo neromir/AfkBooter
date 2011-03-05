@@ -39,6 +39,7 @@ public class AfkBooter extends JavaPlugin
     private String kickMessage;
     private int timeoutCheckInterval;        // in seconds
     private String kickBroadcastMessage;
+    private long lastKickAttempt;
 
     private Logger logger;
 
@@ -63,6 +64,8 @@ public class AfkBooter extends JavaPlugin
         kickTimeout = settings.getKickTimeout();
         timeoutCheckInterval = settings.getTimeoutCheckInterval();
         kickBroadcastMessage = settings.getKickBroadcastMessage();
+
+        lastKickAttempt = System.currentTimeMillis();
 
         // Start up the threaded timer. Initializing it here allows us to restart
         // it later on re-enable.
@@ -105,9 +108,27 @@ public class AfkBooter extends JavaPlugin
 
     public void kickAfkPlayers()
     {
+        // If we haven't reached the player count threshold, don't even try to kick players.
+        if(getServer().getOnlinePlayers().length < settings.getPlayerCountThreshold())
+            return;
+
+        final long FAILED_KICK_LENGTH = 60000;
         // Get the current time and then iterate across all tracked players.
         long now = System.currentTimeMillis();
-        if(!playersToKick.isEmpty())
+
+        // Checks when the last time was we set the PlayerKicker task.  If it has been longer than FAILED_KICK_LENGTH
+        // then we've had players to be kicked sitting in the list for the kicker task to be activated for that long.
+        // Since this length should be at least 60 seconds, that's way too long and indicates a problem with the task,
+        // meaning we should start over.
+        if(lastKickAttempt + FAILED_KICK_LENGTH < now && !playersToKick.isEmpty())
+        {
+            // If we've reached this timeout, log a severe warning and clear the list of idle players.  We should be
+            // back at normal state then, ready to resume normal operation.
+            log("Failed to kick idle players. Passed timeout (" + FAILED_KICK_LENGTH / 1000 + " sec) after found idlers.",
+                Level.SEVERE);
+            playersToKick.clear();
+        }
+        else if(!playersToKick.isEmpty())
         {
             log("Attempting to re-check for players to kick too soon. Please set interval higher.", Level.INFO);
             return;
@@ -126,7 +147,10 @@ public class AfkBooter extends JavaPlugin
         }
 
         if(!playersToKick.isEmpty())
+        {
+            lastKickAttempt = System.currentTimeMillis();
             getServer().getScheduler().scheduleSyncDelayedTask(this, new PlayerKicker());
+        }
     }
 
     @Override
@@ -153,6 +177,8 @@ public class AfkBooter extends JavaPlugin
                 return handleRemoveExemptPlayerCommand(sender, subCommandArgs);
             else if(subCommand.equals("listexempt"))
                 return handleListExemptCommand(sender, subCommandArgs);
+            else if(subCommand.equals("playercount"))
+                return handlePlayerCountCommand(sender, subCommandArgs);
         }
 
         return false;
@@ -166,7 +192,7 @@ public class AfkBooter extends JavaPlugin
         if(!sender.isOp())
         {
             sender.sendMessage("You do not have permission to change the kick timeout.");
-            return false;
+            return true;
         }
 
         int newKickTimeout;
@@ -198,7 +224,7 @@ public class AfkBooter extends JavaPlugin
         if(!sender.isOp())
         {
             sender.sendMessage("You do not have permission to change the kick message.");
-            return false;
+            return true;
         }
 
         String newKickMessage = "";
@@ -225,7 +251,7 @@ public class AfkBooter extends JavaPlugin
         if(!sender.isOp())
         {
             sender.sendMessage("You do not have permission to change the kick broadcast.");
-            return false;
+            return true;
         }
 
         String newKickBroadcast = "";
@@ -252,7 +278,7 @@ public class AfkBooter extends JavaPlugin
         if(!sender.isOp())
         {
             sender.sendMessage("You do not have permission to add exempt players.");
-            return false;
+            return true;
         }
 
         String newExemptPlayer = args.get(0).trim();
@@ -282,7 +308,7 @@ public class AfkBooter extends JavaPlugin
         if(!sender.isOp())
         {
             sender.sendMessage("You do not have permission to remove exempt players.");
-            return false;
+            return true;
         }
 
         String playerToRemove = args.get(0).trim();
@@ -312,7 +338,7 @@ public class AfkBooter extends JavaPlugin
         if(!sender.isOp())
         {
             sender.sendMessage("You do not have permission to see exempt players.");
-            return false;
+            return true;
         }
 
         String playerList = "";
@@ -325,6 +351,37 @@ public class AfkBooter extends JavaPlugin
         }
 
         sender.sendMessage("Exempt players: " + playerList);
+
+        return true;
+    }
+
+    private boolean handlePlayerCountCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() != 1)
+            return false;
+
+        if(!sender.isOp())
+        {
+            sender.sendMessage("You do not have permission to change the kick timeout.");
+            return true;
+        }
+
+        int newPlayerThreshold;
+        try
+        {
+            newPlayerThreshold = Integer.parseInt(args.get(0));
+        }
+        catch(NumberFormatException e)
+        {
+            sender.sendMessage(ChatColor.RED + "'" + args.get(0) + "' is not a number.");
+            return false;
+        }
+
+        settings.setPlayerCountThreshold(newPlayerThreshold);
+        sender.sendMessage("Player count threshold changed to " + newPlayerThreshold);
+        log("Player count threshold changed to " + newPlayerThreshold, Level.INFO);
+
+        settings.saveSettings(getDataFolder());
 
         return true;
     }

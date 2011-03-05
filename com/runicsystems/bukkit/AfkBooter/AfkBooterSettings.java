@@ -16,6 +16,7 @@ public class AfkBooterSettings
     private final String PROP_KICK_TIMEOUT = "kick-timeout";
     private final String PROP_TIMEOUT_CHECK = "timeout-check-interval";
     private final String PROP_EXEMPT_PLAYERS = "exempt-players";
+    private final String PROP_PLAYER_COUNT = "player-count-threshold";
     private final String CONFIG_FILE = "afkbooter.properties";
 
     public final int DEFAULT_KICK_TIMEOUT = 30;
@@ -23,12 +24,14 @@ public class AfkBooterSettings
     public final int DEFAULT_TIMEOUT_CHECK = 10;
     public final String DEFAULT_KICK_BROADCAST = "kicked for idling.";
     public final String DEFAULT_EXEMPT_PLAYERS = "name1,name2,name3";
+    public final int DEFAULT_PLAYER_COUNT = 0;
 
     private List<String> exemptPlayers;
     private int kickTimeout;
     private String kickMessage;
     private int timeoutCheckInterval;
     private String kickBroadcastMessage;
+    private int playerCountThreshold;
 
     private AfkBooter plugin;
 
@@ -40,6 +43,7 @@ public class AfkBooterSettings
         kickMessage = DEFAULT_KICK_MESSAGE;
         timeoutCheckInterval = DEFAULT_TIMEOUT_CHECK;
         kickBroadcastMessage = DEFAULT_KICK_BROADCAST;
+        playerCountThreshold = DEFAULT_PLAYER_COUNT;
     }
 
     public void init(File configFolder)
@@ -102,13 +106,15 @@ public class AfkBooterSettings
             configProps.setProperty(PROP_KICK_BROADCAST, kickBroadcastMessage);
             configProps.setProperty(PROP_KICK_MESSAGE, kickMessage);
             configProps.setProperty(PROP_KICK_TIMEOUT, ((Integer) kickTimeout).toString());
+            configProps.setProperty(PROP_PLAYER_COUNT, ((Integer) playerCountThreshold).toString());
             BufferedOutputStream stream = new BufferedOutputStream(
                     new FileOutputStream(configFile.getAbsolutePath()));
-            configProps.store(stream, "Default auto-created config file. Please change.\n" +
+            configProps.store(stream, "Default auto-created config file. Version " + plugin.getDescription().getVersion() + ". Please change.\n" +
                     "kick-timeout is amount of time (sec) players can be idle, kick-message is the message the\n" +
                     "kicked player sees, kick-broadcast is the message all players see when a player is kicked (name + message), \n" +
                     "timeout-check-interval is the frequency (sec) to check for players to boot, and exempt-players is the list\n" +
-                    "of players not to kick at all.");
+                    "of players not to kick at all. player-count-threshold is the number of players that must be present before\n" +
+                    "players start getting kicked for idling. Set to 0 for always.");
             plugin.log("Finished writing config file.", Level.INFO);
         }
         catch(IOException e)
@@ -153,6 +159,16 @@ public class AfkBooterSettings
             {
                 plugin.log("Failed reading timeout check interval.", Level.SEVERE);
                 timeoutCheckInterval = DEFAULT_TIMEOUT_CHECK;
+            }
+
+            try
+            {
+                playerCountThreshold = Integer.parseInt(configProps.getProperty(PROP_PLAYER_COUNT));
+            }
+            catch(NumberFormatException e)
+            {
+                plugin.log("Failed reading player count threshold.", Level.SEVERE);
+                playerCountThreshold = DEFAULT_PLAYER_COUNT;
             }
 
             String exemptList = configProps.getProperty(PROP_EXEMPT_PLAYERS);
@@ -234,5 +250,15 @@ public class AfkBooterSettings
     public void setKickBroadcastMessage(String kickBroadcastMessage)
     {
         this.kickBroadcastMessage = kickBroadcastMessage;
+    }
+
+    public int getPlayerCountThreshold()
+    {
+        return playerCountThreshold;
+    }
+
+    public void setPlayerCountThreshold(int playerCountThreshold)
+    {
+        this.playerCountThreshold = playerCountThreshold;
     }
 }
