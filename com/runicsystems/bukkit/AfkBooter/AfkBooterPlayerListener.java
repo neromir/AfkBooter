@@ -20,7 +20,7 @@ public class AfkBooterPlayerListener extends PlayerListener
     public void onPlayerMove(PlayerMoveEvent event)
     {
         // Experimental code for ignoring jumping.
-        if(event.getTo().getY() > event.getFrom().getY() || event.getTo().getY() < event.getFrom().getY())
+        if(plugin.getSettings().isUseJumpIgnore() && (event.getTo().getY() > event.getFrom().getY() || event.getTo().getY() < event.getFrom().getY()))
             return;
 
         plugin.recordPlayerActivity(event.getPlayer().getName());

@@ -1,6 +1,6 @@
 name: AfkBooter
 main: com.runicsystems.bukkit.AfkBooter.AfkBooter
-version: 0.5.1
+version: 0.6
 author: Neromir
 
 commands:
@@ -15,3 +15,4 @@ commands:
            Example: /<command> addExempt [playerName] - Add a player to the exempt list.
            Example: /<command> removeExempt [playerName] - Remove a player from the exempt list.
            Example: /<command> playerCount [number] - Set the player count threshold before idlers are kicked.
+           Example: /<command> useJumpIgnore [true|false] - Set whether or not to use experimental jump ignoring code.
