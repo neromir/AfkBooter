@@ -130,11 +130,19 @@ public class AfkBooter extends JavaPlugin
             if(test != null)
             {
                 log("Permissions detected, attaching.", Level.INFO);
-                permissions = ((Permissions)test).getHandler();
+                permissions = ((Permissions) test).getHandler();
             }
             else
                 log("Permissions not detected, defaulting to OP permissions.", Level.INFO);
         }
+    }
+
+    private boolean hasPermission(Player player, String permission)
+    {
+        if(permissions == null)
+            return false;
+
+        return permissions.has(player, permission);
     }
 
     public void kickAfkPlayers()
@@ -239,7 +247,7 @@ public class AfkBooter extends JavaPlugin
         if(args.size() != 1)
             return false;
 
-        if(!sender.isOp() && !(isPlayer(sender) && permissions.has((Player)sender, PERMISSIONS_CONFIG)))
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
         {
             sender.sendMessage("You do not have permission to change the kick timeout.");
             return true;
@@ -271,7 +279,7 @@ public class AfkBooter extends JavaPlugin
         if(args.size() < 1)
             return false;
 
-        if(!sender.isOp() && !(isPlayer(sender) && permissions.has((Player)sender, PERMISSIONS_CONFIG)))
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
         {
             sender.sendMessage("You do not have permission to change the kick message.");
             return true;
@@ -298,7 +306,7 @@ public class AfkBooter extends JavaPlugin
         if(args.size() < 1)
             return false;
 
-        if(!sender.isOp() && !(isPlayer(sender) && permissions.has((Player)sender, PERMISSIONS_CONFIG)))
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
         {
             sender.sendMessage("You do not have permission to change the kick broadcast.");
             return true;
@@ -325,7 +333,7 @@ public class AfkBooter extends JavaPlugin
         if(args.size() != 1)
             return false;
 
-        if(!sender.isOp() && !(isPlayer(sender) && permissions.has((Player)sender, PERMISSIONS_CONFIG)))
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
         {
             sender.sendMessage("You do not have permission to add exempt players.");
             return true;
@@ -355,7 +363,7 @@ public class AfkBooter extends JavaPlugin
         if(args.size() != 1)
             return false;
 
-        if(!sender.isOp() && !(isPlayer(sender) && permissions.has((Player)sender, PERMISSIONS_CONFIG)))
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
         {
             sender.sendMessage("You do not have permission to remove exempt players.");
             return true;
@@ -385,7 +393,7 @@ public class AfkBooter extends JavaPlugin
             return false;
         }
 
-        if(!sender.isOp() && !(isPlayer(sender) && permissions.has((Player)sender, PERMISSIONS_CONFIG)))
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
         {
             sender.sendMessage("You do not have permission to see exempt players.");
             return true;
@@ -410,7 +418,7 @@ public class AfkBooter extends JavaPlugin
         if(args.size() != 1)
             return false;
 
-        if(!sender.isOp() && !(isPlayer(sender) && permissions.has((Player)sender, PERMISSIONS_CONFIG)))
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
         {
             sender.sendMessage("You do not have permission to change the kick timeout.");
             return true;
@@ -441,7 +449,7 @@ public class AfkBooter extends JavaPlugin
         if(args.size() != 1)
             return false;
 
-        if(!sender.isOp() && !(isPlayer(sender) && permissions.has((Player)sender, PERMISSIONS_CONFIG)))
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
         {
             sender.sendMessage("You do not have permission to change the jump ignore usage.");
             return true;
@@ -450,8 +458,8 @@ public class AfkBooter extends JavaPlugin
         boolean useJumpIgnore = Boolean.parseBoolean(args.get(0));
 
         settings.setUseJumpIgnore(useJumpIgnore);
-        sender.sendMessage("Use of jump ignore set to " + ((Boolean)useJumpIgnore).toString());
-        log("Use of jump ignore set to " + ((Boolean)useJumpIgnore).toString(), Level.INFO);
+        sender.sendMessage("Use of jump ignore set to " + ((Boolean) useJumpIgnore).toString());
+        log("Use of jump ignore set to " + ((Boolean) useJumpIgnore).toString(), Level.INFO);
 
         settings.saveSettings(getDataFolder());
 
@@ -466,7 +474,7 @@ public class AfkBooter extends JavaPlugin
     public void recordPlayerActivity(String playerName)
     {
         // Don't even record them if their name is on the exempt list.
-        if(settings.getExemptPlayers().contains(playerName) || permissions.has(getServer().getPlayer(playerName), PERMISSIONS_EXEMPT))
+        if(settings.getExemptPlayers().contains(playerName) || hasPermission(getServer().getPlayer(playerName), PERMISSIONS_EXEMPT))
             return;
 
         long now = System.currentTimeMillis();
