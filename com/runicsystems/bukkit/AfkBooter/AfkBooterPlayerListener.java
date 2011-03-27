@@ -49,5 +49,11 @@ public class AfkBooterPlayerListener extends PlayerListener
     {
         plugin.recordPlayerActivity(event.getPlayer().getName());
     }
+
+    @Override
+    public void onPlayerDropItem(PlayerDropItemEvent event)
+    {
+        plugin.recordPlayerActivity(event.getPlayer().getName());
+    }
 }
 

@@ -34,6 +34,7 @@ public class AfkBooter extends JavaPlugin
     // Defaults to check every 10 seconds.
     private AfkBooterTimer threadedTimer;
     private AfkBooterSettings settings;
+    private AfkBooterEventCatalog eventCatalog;
 
     private final String PERMISSIONS_CONFIG = "afkbooter.config";
     private final String PERMISSIONS_EXEMPT = "afkbooter.exempt";
@@ -57,6 +58,7 @@ public class AfkBooter extends JavaPlugin
         super();
 
         settings = new AfkBooterSettings(this);
+        eventCatalog = new AfkBooterEventCatalog();
         kickTimeout = settings.DEFAULT_KICK_TIMEOUT;
         kickMessage = settings.DEFAULT_KICK_MESSAGE;
         timeoutCheckInterval = settings.DEFAULT_TIMEOUT_CHECK;
@@ -74,6 +76,8 @@ public class AfkBooter extends JavaPlugin
         kickTimeout = settings.getKickTimeout();
         timeoutCheckInterval = settings.getTimeoutCheckInterval();
         kickBroadcastMessage = settings.getKickBroadcastMessage();
+
+        eventCatalog.initialize(settings);
 
         lastKickAttempt = System.currentTimeMillis();
 
@@ -99,11 +103,20 @@ public class AfkBooter extends JavaPlugin
 
         // Register our events
         PluginManager pm = getServer().getPluginManager();
-        pm.registerEvent(Event.Type.PLAYER_MOVE, playerListener, Priority.Monitor, this);
         pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
         pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
-        pm.registerEvent(Event.Type.INVENTORY_OPEN, playerListener, Priority.Monitor, this);
-        pm.registerEvent(Event.Type.PLAYER_CHAT, playerListener, Priority.Monitor, this);
+
+        // Retrieve and register for block events as specified by admin.
+        for(Event.Type blockEvent : eventCatalog.getBlockEvents())
+            pm.registerEvent(blockEvent, blockListener, Priority.Monitor, this);
+
+        // Retrieve and register for player events as specified by admin.
+        for(Event.Type playerEvent : eventCatalog.getPlayerEvents())
+            pm.registerEvent(playerEvent, playerListener, Priority.Monitor, this);
+
+//        pm.registerEvent(Event.Type.PLAYER_MOVE, playerListener, Priority.Monitor, this);
+//        pm.registerEvent(Event.Type.INVENTORY_OPEN, playerListener, Priority.Monitor, this);
+//        pm.registerEvent(Event.Type.PLAYER_CHAT, playerListener, Priority.Monitor, this);
     }
 
     public void onDisable()
@@ -139,10 +152,7 @@ public class AfkBooter extends JavaPlugin
 
     private boolean hasPermission(Player player, String permission)
     {
-        if(permissions == null)
-            return false;
-
-        return permissions.has(player, permission);
+        return permissions != null && permissions.has(player, permission);
     }
 
     public void kickAfkPlayers()
@@ -168,10 +178,10 @@ public class AfkBooter extends JavaPlugin
                 log("Failed to kick idle players. Passed timeout (" + FAILED_KICK_LENGTH / 1000 + " sec) after found idlers.",
                     Level.SEVERE);
                 playersToKick.clear();
+                lastKickAttempt = System.currentTimeMillis();
             }
             else if(!playersToKick.isEmpty())
             {
-
                 log("Player count: " + playersToKick.size() + ". Attempting to re-check for players to kick too soon. Please set interval higher.", Level.INFO);
                 return;
             }
@@ -529,6 +539,7 @@ public class AfkBooter extends JavaPlugin
      *
      * @param dataFolder The config folder location.
      */
+    @SuppressWarnings({"UnusedDeclaration"})
     private void firstRunSettings(File dataFolder)
     {
         log("Configuration file not found, creating new one.", Level.INFO);
