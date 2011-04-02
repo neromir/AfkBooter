@@ -27,13 +27,13 @@ public class AfkBooterPlayerListener extends PlayerListener
     }
 
     @Override
-    public void onPlayerJoin(PlayerEvent event)
+    public void onPlayerJoin(PlayerJoinEvent event)
     {
         plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
     @Override
-    public void onPlayerQuit(PlayerEvent event)
+    public void onPlayerQuit(PlayerQuitEvent event)
     {
         plugin.stopTrackingPlayer(event.getPlayer().getName());
     }

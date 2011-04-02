@@ -37,7 +37,7 @@ public class AfkBooterEventCatalog
             blockEvents.add(Event.Type.BLOCK_BREAK);
 
         if(settings.isBlockPlaceListen())
-            blockEvents.add(Event.Type.BLOCK_PLACED);
+            blockEvents.add(Event.Type.BLOCK_PLACE);
 
         if(settings.isDropItemListen())
             playerEvents.add(Event.Type.PLAYER_DROP_ITEM);
