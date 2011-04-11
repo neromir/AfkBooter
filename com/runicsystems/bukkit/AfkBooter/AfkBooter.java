@@ -152,6 +152,9 @@ public class AfkBooter extends JavaPlugin
 
     private boolean hasPermission(Player player, String permission)
     {
+        if(player == null)
+            return false;
+
         return permissions != null && permissions.has(player, permission);
     }
 
