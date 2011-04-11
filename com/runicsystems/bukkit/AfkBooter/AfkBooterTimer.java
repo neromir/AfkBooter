@@ -21,14 +21,14 @@ public class AfkBooterTimer extends Thread
     @Override
     public void run()
     {
-        while (!aborted)
+        while(!aborted)
         {
             try
             {
                 plugin.kickAfkPlayers();
                 Thread.sleep(timeToSleep);
             }
-            catch (InterruptedException e)
+            catch(InterruptedException e)
             {
                 plugin.log("Interrupted while sleeping.", Level.SEVERE);
                 e.printStackTrace();
@@ -36,19 +36,9 @@ public class AfkBooterTimer extends Thread
         }
     }
 
-    public long getTimeToSleep()
-    {
-        return timeToSleep;
-    }
-
     public void setTimeToSleep(long timeToSleep)
     {
         this.timeToSleep = timeToSleep;
-    }
-
-    public boolean isAborted()
-    {
-        return aborted;
     }
 
     public void setAborted(boolean aborted)

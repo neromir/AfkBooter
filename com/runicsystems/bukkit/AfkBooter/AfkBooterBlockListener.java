@@ -18,8 +18,6 @@ public class AfkBooterBlockListener extends BlockListener
         this.plugin = plugin;
     }
 
-    //put all Block related code here
-
     @Override
     public void onBlockPlace(BlockPlaceEvent event)
     {

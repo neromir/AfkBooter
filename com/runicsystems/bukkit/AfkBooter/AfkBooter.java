@@ -169,21 +169,24 @@ public class AfkBooter extends JavaPlugin
         // then we've had players to be kicked sitting in the list for the kicker task to be activated for that long.
         // Since this length should be at least 60 seconds, that's way too long and indicates a problem with the task,
         // meaning we should start over.
-        synchronized(playersToKickLock)
+        if(settings.isKickIdlers())
         {
-            if(lastKickAttempt + FAILED_KICK_LENGTH < now && !playersToKick.isEmpty())
+            synchronized(playersToKickLock)
             {
-                // If we've reached this timeout, log a severe warning and clear the list of idle players.  We should be
-                // back at normal state then, ready to resume normal operation.
-                log("Failed to kick idle players. Passed timeout (" + FAILED_KICK_LENGTH / 1000 + " sec) after found idlers.",
-                    Level.SEVERE);
-                playersToKick.clear();
-                lastKickAttempt = System.currentTimeMillis();
-            }
-            else if(!playersToKick.isEmpty())
-            {
-                log("Player count: " + playersToKick.size() + ". Attempting to re-check for players to kick too soon. Please set interval higher.", Level.INFO);
-                return;
+                if(lastKickAttempt + FAILED_KICK_LENGTH < now && !playersToKick.isEmpty())
+                {
+                    // If we've reached this timeout, log a severe warning and clear the list of idle players.  We should be
+                    // back at normal state then, ready to resume normal operation.
+                    log("Failed to kick idle players. Passed timeout (" + FAILED_KICK_LENGTH / 1000 + " sec) after found idlers.",
+                        Level.SEVERE);
+                    playersToKick.clear();
+                    lastKickAttempt = System.currentTimeMillis();
+                }
+                else if(!playersToKick.isEmpty())
+                {
+                    log("Player count: " + playersToKick.size() + ". Attempting to re-check for players to kick too soon. Please set interval higher.", Level.INFO);
+                    return;
+                }
             }
         }
 
@@ -199,10 +202,21 @@ public class AfkBooter extends JavaPlugin
             {
                 synchronized(playersToKickLock)
                 {
+                    // Make sure we don't add them to the list of players to be kicked if they're already on it.
+                    if(playersToKick.contains(activityEntry.getKey()))
+                        continue;
+
+                    if(!settings.isKickIdlers())
+                        getServer().broadcastMessage(ChatColor.YELLOW + activityEntry.getKey() + " " + kickBroadcastMessage);
+
                     playersToKick.add(activityEntry.getKey());
                 }
             }
         }
+
+        // If we're set to not kick idlers, don't schedule the task.
+        if(!settings.isKickIdlers())
+            return;
 
         synchronized(playersToKickLock)
         {
@@ -242,6 +256,8 @@ public class AfkBooter extends JavaPlugin
                 return handlePlayerCountCommand(sender, subCommandArgs);
             else if(subCommand.equals("usejumpignore"))
                 return handleJumpIgnoreCommand(sender, subCommandArgs);
+            else if(subCommand.equals("kickidlers"))
+                return handleKickIdlersCommand(sender, subCommandArgs);
         }
 
         return false;
@@ -476,6 +492,28 @@ public class AfkBooter extends JavaPlugin
         return true;
     }
 
+    private boolean handleKickIdlersCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() != 1)
+            return false;
+
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
+        {
+            sender.sendMessage("You do not have permission to change whether or not to kick idlers.");
+            return true;
+        }
+
+        boolean kickIdlers = Boolean.parseBoolean(args.get(0));
+
+        settings.setKickIdlers(kickIdlers);
+        sender.sendMessage("Kicking idlers set to " + ((Boolean) kickIdlers).toString());
+        log("Kicking idlers set to " + ((Boolean) kickIdlers).toString(), Level.INFO);
+
+        settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
     public void log(String logMessage, Level logLevel)
     {
         logger.log(logLevel, "[AfkBooter] " + logMessage);
@@ -486,6 +524,18 @@ public class AfkBooter extends JavaPlugin
         // Don't even record them if their name is on the exempt list.
         if(settings.getExemptPlayers().contains(playerName) || hasPermission(getServer().getPlayer(playerName), PERMISSIONS_EXEMPT))
             return;
+
+        if(!settings.isKickIdlers())
+        {
+            synchronized(playersToKickLock)
+            {
+                if(playersToKick.contains(playerName))
+                {
+                    getServer().broadcastMessage(ChatColor.YELLOW + playerName + " no longer idle.");
+                    playersToKick.remove(playerName);
+                }
+            }
+        }
 
         long now = System.currentTimeMillis();
         lastPlayerActivity.put(playerName, now);
@@ -513,11 +563,14 @@ public class AfkBooter extends JavaPlugin
                         log("Kicking player " + playerName, Level.INFO);
                         // Stop tracking them, since we're booting them.
                         lastPlayerActivity.remove(playerName);
-                        player.kickPlayer(kickMessage);
+                        if(player.isOnline())
+                            player.kickPlayer(kickMessage);
+                        else
+                            continue;
 
                         // Don't output the broadcast message if it's set to empty or null.
                         if(kickBroadcastMessage != null && !kickBroadcastMessage.isEmpty())
-                            getServer().broadcastMessage(playerName + " " + kickBroadcastMessage);
+                            getServer().broadcastMessage(ChatColor.YELLOW + playerName + " " + kickBroadcastMessage);
                     }
                 }
 
