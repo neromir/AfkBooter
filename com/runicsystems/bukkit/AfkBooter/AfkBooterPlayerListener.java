@@ -23,6 +23,10 @@ public class AfkBooterPlayerListener extends PlayerListener
         if(plugin.getSettings().isUseJumpIgnore() && (event.getTo().getY() > event.getFrom().getY() || event.getTo().getY() < event.getFrom().getY()))
             return;
 
+        // Ignores player movement if they are sitting in a vehicle.
+        if(plugin.getSettings().isIgnoreVehicles() && event.getPlayer().getVehicle() != null)
+            return;
+
         plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 

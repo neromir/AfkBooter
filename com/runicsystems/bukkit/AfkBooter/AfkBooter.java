@@ -210,7 +210,14 @@ public class AfkBooter extends JavaPlugin
                         continue;
 
                     if(!settings.isKickIdlers())
+                    {
+                        // If this player is in the AFK state, then we want to check if the config allows us to tell
+                        // the server to ignore them for sleeping participation.
+                        if(settings.isUseFauxSleep())
+                            getServer().getPlayer(activityEntry.getKey()).setSleepingIgnored(true);
+
                         getServer().broadcastMessage(ChatColor.YELLOW + activityEntry.getKey() + " " + kickBroadcastMessage);
+                    }
 
                     playersToKick.add(activityEntry.getKey());
                 }
@@ -261,6 +268,10 @@ public class AfkBooter extends JavaPlugin
                 return handleJumpIgnoreCommand(sender, subCommandArgs);
             else if(subCommand.equals("kickidlers"))
                 return handleKickIdlersCommand(sender, subCommandArgs);
+            else if(subCommand.equals("ignorevehicles"))
+                return handleIgnoreVehiclesCommand(sender, subCommandArgs);
+            else if(subCommand.equals("usefauxsleep"))
+                return handleUseFauxSleepCommand(sender, subCommandArgs);
         }
 
         return false;
@@ -517,6 +528,50 @@ public class AfkBooter extends JavaPlugin
         return true;
     }
 
+    private boolean handleIgnoreVehiclesCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() != 1)
+            return false;
+
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
+        {
+            sender.sendMessage("You do not have permission to change whether or not to ignore vehicle movement.");
+            return true;
+        }
+
+        boolean ignoreVehicles = Boolean.parseBoolean(args.get(0));
+
+        settings.setIgnoreVehicles(ignoreVehicles);
+        sender.sendMessage("Ignore vehicle movement set to " + ((Boolean)ignoreVehicles).toString());
+        log("Ignore vehicle movement set to " + ((Boolean)ignoreVehicles).toString(), Level.INFO);
+
+        settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
+    private boolean handleUseFauxSleepCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() != 1)
+            return false;
+
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
+        {
+            sender.sendMessage("You do not have permission to change whether or not to use faux sleep.");
+            return true;
+        }
+
+        boolean useFauxSleep = Boolean.parseBoolean(args.get(0));
+
+        settings.setUseFauxSleep(useFauxSleep);
+        sender.sendMessage("Use faux sleep set to " + ((Boolean)useFauxSleep).toString());
+        log("Use faux sleep set to " + ((Boolean)useFauxSleep).toString(), Level.INFO);
+
+        settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
     public void log(String logMessage, Level logLevel)
     {
         logger.log(logLevel, "[AfkBooter] " + logMessage);
@@ -534,6 +589,10 @@ public class AfkBooter extends JavaPlugin
             {
                 if(playersToKick.contains(playerName))
                 {
+                    // Don't want to ignore this player for sleeping calculations any longer.
+                    if(settings.isUseFauxSleep())
+                        getServer().getPlayer(playerName).setSleepingIgnored(false);
+
                     getServer().broadcastMessage(ChatColor.YELLOW + playerName + " no longer idle.");
                     playersToKick.remove(playerName);
                 }

@@ -19,6 +19,8 @@ public class AfkBooterSettings
     private final String PROP_PLAYER_COUNT = "player-count-threshold";
     private final String PROP_USE_JUMP_IGNORE = "use-jump-ignoring";
     private final String PROP_KICK_ILDERS = "kick-idlers";
+    private final String PROP_IGNORE_VEHICLES = "ignore-vehicle-movement";
+    private final String PROP_USE_FAUX_SLEEP = "use-faux-sleep";
     private final String CONFIG_FILE = "afkbooter.properties";
 
     private final String PROP_MOVE_LISTEN = "listen-move";
@@ -35,6 +37,8 @@ public class AfkBooterSettings
     public final String DEFAULT_EXEMPT_PLAYERS = "name1,name2,name3";
     public final int DEFAULT_PLAYER_COUNT = 0;
     public final boolean DEFAULT_USE_JUMP_IGNORE = false;
+    public final boolean DEFAULT_IGNORE_VEHICLES = false;
+    public final boolean DEFAULT_USE_FAUX_SLEEP = true;
     public final boolean DEFAULT_KICK_IDLERS = true;
 
     public final boolean DEFAULT_MOVE_LISTEN = true;
@@ -51,6 +55,8 @@ public class AfkBooterSettings
     private String kickBroadcastMessage;
     private int playerCountThreshold;
     private boolean useJumpIgnore;
+    private boolean ignoreVehicles;
+    private boolean useFauxSleep;
     private boolean kickIdlers;
 
     private boolean moveListen;
@@ -73,6 +79,8 @@ public class AfkBooterSettings
         playerCountThreshold = DEFAULT_PLAYER_COUNT;
         useJumpIgnore = DEFAULT_USE_JUMP_IGNORE;
         kickIdlers = DEFAULT_KICK_IDLERS;
+        ignoreVehicles = DEFAULT_IGNORE_VEHICLES;
+        useFauxSleep = DEFAULT_USE_FAUX_SLEEP;
 
         moveListen = DEFAULT_MOVE_LISTEN;
         inventoryOpenListen = DEFAULT_INVENTORY_OPEN_LISTEN;
@@ -146,6 +154,8 @@ public class AfkBooterSettings
             configProps.setProperty(PROP_PLAYER_COUNT, ((Integer) playerCountThreshold).toString());
             configProps.setProperty(PROP_USE_JUMP_IGNORE, ((Boolean) useJumpIgnore).toString());
             configProps.setProperty(PROP_KICK_ILDERS, ((Boolean) kickIdlers).toString());
+            configProps.setProperty(PROP_IGNORE_VEHICLES, ((Boolean) ignoreVehicles).toString());
+            configProps.setProperty(PROP_USE_FAUX_SLEEP, ((Boolean) useFauxSleep).toString());
 
             // Set the values for listening properties.
             configProps.setProperty(PROP_MOVE_LISTEN, ((Boolean) moveListen).toString());
@@ -164,7 +174,9 @@ public class AfkBooterSettings
                     "of players not to kick at all. player-count-threshold is the number of players that must be present before\n" +
                     "players start getting kicked for idling. Set to 0 for always. Set use-jump-ignoring to use the experimental\n" +
                     "code which ignores vertical movement for activity purposes. Set kick-idlers to determine whether or not idlers\n" +
-                    "should actually be kicked or merely announced.");
+                    "should actually be kicked or merely announced. ignore-vehicle-movement if set to true will not consider a player's\n" +
+                    "movement if they are in a vehicle. use-faux-sleep will count AFK players as \"sleeping\" for the purposes of beds\n" +
+                    "moving the clock forward; only works if kick-idlers is false.");
             plugin.log("Finished writing config file.", Level.INFO);
         }
         catch(IOException e)
@@ -230,6 +242,16 @@ public class AfkBooterSettings
                 kickIdlers = DEFAULT_KICK_IDLERS;
             else
                 kickIdlers = Boolean.parseBoolean(configProps.getProperty(PROP_KICK_ILDERS));
+
+            if(!configProps.containsKey(PROP_IGNORE_VEHICLES))
+                ignoreVehicles = DEFAULT_IGNORE_VEHICLES;
+            else
+                ignoreVehicles = Boolean.parseBoolean(configProps.getProperty(PROP_IGNORE_VEHICLES));
+
+            if(!configProps.containsKey(PROP_USE_FAUX_SLEEP))
+                useFauxSleep = DEFAULT_USE_FAUX_SLEEP;
+            else
+                useFauxSleep = Boolean.parseBoolean(configProps.getProperty(PROP_USE_FAUX_SLEEP));
 
             // Pull out event listening properties.
             if(!configProps.containsKey(PROP_MOVE_LISTEN))
@@ -366,6 +388,26 @@ public class AfkBooterSettings
     public void setKickIdlers(boolean kickIdlers)
     {
         this.kickIdlers = kickIdlers;
+    }
+
+    public boolean isIgnoreVehicles()
+    {
+        return ignoreVehicles;
+    }
+
+    public void setIgnoreVehicles(boolean ignoreVehicles)
+    {
+        this.ignoreVehicles = ignoreVehicles;
+    }
+
+    public boolean isUseFauxSleep()
+    {
+        return useFauxSleep;
+    }
+
+    public void setUseFauxSleep(boolean useFauxSleep)
+    {
+        this.useFauxSleep = useFauxSleep;
     }
 
     public boolean isMoveListen()
