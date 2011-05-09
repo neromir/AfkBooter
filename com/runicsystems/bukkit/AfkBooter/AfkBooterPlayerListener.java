@@ -19,6 +19,9 @@ public class AfkBooterPlayerListener extends PlayerListener
     @Override
     public void onPlayerMove(PlayerMoveEvent event)
     {
+        if(event.isCancelled())
+            return;
+
         // Experimental code for ignoring jumping.
         if(plugin.getSettings().isUseJumpIgnore() && (event.getTo().getY() > event.getFrom().getY() || event.getTo().getY() < event.getFrom().getY()))
             return;
@@ -51,13 +54,32 @@ public class AfkBooterPlayerListener extends PlayerListener
     @Override
     public void onPlayerChat(PlayerChatEvent event)
     {
-        plugin.recordPlayerActivity(event.getPlayer().getName());
+        if(!event.isCancelled())
+            plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
     @Override
     public void onPlayerDropItem(PlayerDropItemEvent event)
     {
-        plugin.recordPlayerActivity(event.getPlayer().getName());
+        if(!event.isCancelled())
+            plugin.recordPlayerActivity(event.getPlayer().getName());
+    }
+
+    @Override
+    public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
+    {
+        if(!event.isCancelled())
+            plugin.recordPlayerActivity(event.getPlayer().getName());
+    }
+
+    @Override
+    public void onPlayerPickupItem(PlayerPickupItemEvent event)
+    {
+        if(!plugin.getSettings().isKickIdlers() && plugin.getSettings().isBlockItems() &&
+                plugin.isPlayerIdle(event.getPlayer().getName()))
+        {
+            event.setCancelled(true);
+        }
     }
 }
 

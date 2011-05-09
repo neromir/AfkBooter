@@ -1,6 +1,6 @@
 name: AfkBooter
 main: com.runicsystems.bukkit.AfkBooter.AfkBooter
-version: 0.9
+version: 1.0
 author: Neromir
 
 commands:
@@ -17,3 +17,6 @@ commands:
            Example: /<command> playerCount [number] - Set the player count threshold before idlers are kicked.
            Example: /<command> useJumpIgnore [true|false] - Set whether or not to use experimental jump ignoring code.
            Example: /<command> kickIdlers [true|false] - Set whether or not to kick idlers (false shows announcement of idling only).
+           Example: /<command> ignoreVehicles [true|false] - Set whether or not to ignore player movement while in vehicles.
+           Example: /<command> useFauxSleep [true|false] - Set whether or not to use faux sleep (afk players are considered in bed).
+           Example: /<command> blockIdleItems [true|false] - Set whether or not item pickup should be blocked for idlers.

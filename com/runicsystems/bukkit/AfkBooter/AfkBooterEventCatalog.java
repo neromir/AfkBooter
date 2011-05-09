@@ -13,43 +13,56 @@ import java.util.List;
  */
 public class AfkBooterEventCatalog
 {
-    private List<Event.Type> blockEvents;
-    private List<Event.Type> playerEvents;
+    private List<EventInfo> blockEvents;
+    private List<EventInfo> playerEvents;
+
+    private List<EventInfo> allEvents;
 
     public AfkBooterEventCatalog()
     {
-        blockEvents = new LinkedList<Event.Type>();
-        playerEvents = new LinkedList<Event.Type>();
+        blockEvents = new LinkedList<EventInfo>();
+        playerEvents = new LinkedList<EventInfo>();
+        allEvents = new LinkedList<EventInfo>();
     }
 
     public void initialize(AfkBooterSettings settings)
     {
-        if(settings.isMoveListen())
-            playerEvents.add(Event.Type.PLAYER_MOVE);
+        for(String eventName : settings.getListedEvents())
+        {
+            if(eventName.startsWith("BLOCK"))
+                blockEvents.add(new EventInfo(Event.Type.valueOf(eventName), Event.Priority.Monitor));
+            else
+                playerEvents.add(new EventInfo(Event.Type.valueOf(eventName), Event.Priority.Monitor));
+        }
 
-        if(settings.isInventoryOpenListen())
-            playerEvents.add(Event.Type.INVENTORY_OPEN);
-
-        if(settings.isChatListen())
-            playerEvents.add(Event.Type.PLAYER_CHAT);
-
-        if(settings.isBlockBreakListen())
-            blockEvents.add(Event.Type.BLOCK_BREAK);
-
-        if(settings.isBlockPlaceListen())
-            blockEvents.add(Event.Type.BLOCK_PLACE);
-
-        if(settings.isDropItemListen())
-            playerEvents.add(Event.Type.PLAYER_DROP_ITEM);
+        if(settings.isBlockItems())
+            playerEvents.add(new EventInfo(Event.Type.PLAYER_PICKUP_ITEM, Event.Priority.High));
     }
 
-    public List<Event.Type> getPlayerEvents()
+    public List<EventInfo> getAllEvents()
+    {
+        return allEvents;
+    }
+
+    public List<EventInfo> getPlayerEvents()
     {
         return playerEvents;
     }
 
-    public List<Event.Type> getBlockEvents()
+    public List<EventInfo> getBlockEvents()
     {
         return blockEvents;
+    }
+
+    public class EventInfo
+    {
+        public Event.Type type;
+        public Event.Priority priority;
+
+        public EventInfo(Event.Type type, Event.Priority priority)
+        {
+            this.type = type;
+            this.priority = priority;
+        }
     }
 }

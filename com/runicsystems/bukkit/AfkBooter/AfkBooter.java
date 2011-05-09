@@ -13,10 +13,6 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -43,15 +39,10 @@ public class AfkBooter extends JavaPlugin
     private ConcurrentHashMap<String, Long> lastPlayerActivity = new ConcurrentHashMap<String, Long>();
     private List<String> playersToKick = new LinkedList<String>();
 
-    private int kickTimeout;                 // in seconds
-    private String kickMessage;
-    private int timeoutCheckInterval;        // in seconds
-    private String kickBroadcastMessage;
     private long lastKickAttempt;
+    private Logger logger;
 
     public static PermissionHandler permissions;
-
-    private Logger logger;
 
     public AfkBooter()
     {
@@ -59,10 +50,6 @@ public class AfkBooter extends JavaPlugin
 
         settings = new AfkBooterSettings(this);
         eventCatalog = new AfkBooterEventCatalog();
-        kickTimeout = settings.DEFAULT_KICK_TIMEOUT;
-        kickMessage = settings.DEFAULT_KICK_MESSAGE;
-        timeoutCheckInterval = settings.DEFAULT_TIMEOUT_CHECK;
-        kickBroadcastMessage = settings.DEFAULT_KICK_BROADCAST;
     }
 
     public void onEnable()
@@ -71,19 +58,12 @@ public class AfkBooter extends JavaPlugin
         setupPermissions();
 
         settings.init(getDataFolder());
-
-        kickMessage = settings.getKickMessage();
-        kickTimeout = settings.getKickTimeout();
-        timeoutCheckInterval = settings.getTimeoutCheckInterval();
-        kickBroadcastMessage = settings.getKickBroadcastMessage();
-
         eventCatalog.initialize(settings);
-
         lastKickAttempt = System.currentTimeMillis();
 
         // Start up the threaded timer. Initializing it here allows us to restart
         // it later on re-enable.
-        threadedTimer = new AfkBooterTimer(this, timeoutCheckInterval * 1000);
+        threadedTimer = new AfkBooterTimer(this, settings.getTimeoutCheckInterval() * 1000);
         threadedTimer.setAborted(false);
         threadedTimer.start();
 
@@ -99,7 +79,7 @@ public class AfkBooter extends JavaPlugin
             if(i < exemptPlayerList.size() - 1)
                 exemptPlayers += ", ";
         }
-        log("Kick timeout " + kickTimeout + " sec, exempt players: " + exemptPlayers, Level.INFO);
+        log("Kick timeout " + settings.getKickTimeout() + " sec, exempt players: " + exemptPlayers, Level.INFO);
 
         // Register our events
         PluginManager pm = getServer().getPluginManager();
@@ -107,16 +87,12 @@ public class AfkBooter extends JavaPlugin
         pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
 
         // Retrieve and register for block events as specified by admin.
-        for(Event.Type blockEvent : eventCatalog.getBlockEvents())
-            pm.registerEvent(blockEvent, blockListener, Priority.Monitor, this);
+        for(AfkBooterEventCatalog.EventInfo blockEvent : eventCatalog.getBlockEvents())
+            pm.registerEvent(blockEvent.type, blockListener, blockEvent.priority, this);
 
         // Retrieve and register for player events as specified by admin.
-        for(Event.Type playerEvent : eventCatalog.getPlayerEvents())
-            pm.registerEvent(playerEvent, playerListener, Priority.Monitor, this);
-
-//        pm.registerEvent(Event.Type.PLAYER_MOVE, playerListener, Priority.Monitor, this);
-//        pm.registerEvent(Event.Type.INVENTORY_OPEN, playerListener, Priority.Monitor, this);
-//        pm.registerEvent(Event.Type.PLAYER_CHAT, playerListener, Priority.Monitor, this);
+        for(AfkBooterEventCatalog.EventInfo playerEvent : eventCatalog.getPlayerEvents())
+            pm.registerEvent(playerEvent.type, playerListener, playerEvent.priority, this);
     }
 
     public void onDisable()
@@ -127,8 +103,11 @@ public class AfkBooter extends JavaPlugin
             playersToKick.clear();
         }
 
-        threadedTimer.setAborted(true);
-        threadedTimer = null;
+        if(threadedTimer != null)
+        {
+            threadedTimer.setAborted(true);
+            threadedTimer = null;
+        }
         // NOTE: All registered events are automatically unregistered when a plugin is disabled
 
         log("Shutting down AfkBooter.", Level.INFO);
@@ -201,7 +180,7 @@ public class AfkBooter extends JavaPlugin
         {
             // If player's last active time + the kick allowance time is earlier than
             // the current time, boot them-- they've been idle too long.
-            if((activityEntry.getValue() + (kickTimeout * 1000)) < now)
+            if((activityEntry.getValue() + (settings.getKickTimeout() * 1000)) < now)
             {
                 synchronized(playersToKickLock)
                 {
@@ -216,7 +195,7 @@ public class AfkBooter extends JavaPlugin
                         if(settings.isUseFauxSleep())
                             getServer().getPlayer(activityEntry.getKey()).setSleepingIgnored(true);
 
-                        getServer().broadcastMessage(ChatColor.YELLOW + activityEntry.getKey() + " " + kickBroadcastMessage);
+                        getServer().broadcastMessage(ChatColor.YELLOW + activityEntry.getKey() + " " + settings.getKickBroadcastMessage());
                     }
 
                     playersToKick.add(activityEntry.getKey());
@@ -272,6 +251,8 @@ public class AfkBooter extends JavaPlugin
                 return handleIgnoreVehiclesCommand(sender, subCommandArgs);
             else if(subCommand.equals("usefauxsleep"))
                 return handleUseFauxSleepCommand(sender, subCommandArgs);
+            else if(subCommand.equals("blockidleitems"))
+                return handleBlockIdleItemsCommand(sender, subCommandArgs);
         }
 
         return false;
@@ -308,7 +289,6 @@ public class AfkBooter extends JavaPlugin
         sender.sendMessage("Kick timeout changed to " + newKickTimeout + " sec.");
         log("Kick timeout changed to " + newKickTimeout + " sec.", Level.INFO);
 
-        threadedTimer.setTimeToSleep(newKickTimeout);
         settings.saveSettings(getDataFolder());
 
         return true;
@@ -542,8 +522,8 @@ public class AfkBooter extends JavaPlugin
         boolean ignoreVehicles = Boolean.parseBoolean(args.get(0));
 
         settings.setIgnoreVehicles(ignoreVehicles);
-        sender.sendMessage("Ignore vehicle movement set to " + ((Boolean)ignoreVehicles).toString());
-        log("Ignore vehicle movement set to " + ((Boolean)ignoreVehicles).toString(), Level.INFO);
+        sender.sendMessage("Ignore vehicle movement set to " + ((Boolean) ignoreVehicles).toString());
+        log("Ignore vehicle movement set to " + ((Boolean) ignoreVehicles).toString(), Level.INFO);
 
         settings.saveSettings(getDataFolder());
 
@@ -564,8 +544,33 @@ public class AfkBooter extends JavaPlugin
         boolean useFauxSleep = Boolean.parseBoolean(args.get(0));
 
         settings.setUseFauxSleep(useFauxSleep);
-        sender.sendMessage("Use faux sleep set to " + ((Boolean)useFauxSleep).toString());
-        log("Use faux sleep set to " + ((Boolean)useFauxSleep).toString(), Level.INFO);
+        sender.sendMessage("Use faux sleep set to " + ((Boolean) useFauxSleep).toString());
+        log("Use faux sleep set to " + ((Boolean) useFauxSleep).toString(), Level.INFO);
+
+        settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
+    private boolean handleBlockIdleItemsCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(args.size() != 1)
+            return false;
+
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
+        {
+            sender.sendMessage("You do not have permission to change whether or not to block items for idlers.");
+            return true;
+        }
+
+        boolean blockIdleItems = Boolean.parseBoolean(args.get(0));
+
+        settings.setBlockItems(blockIdleItems);
+        if(blockIdleItems)
+            getServer().getPluginManager().registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Event.Priority.High, this);
+
+        sender.sendMessage("Block idler items set to " + ((Boolean) blockIdleItems).toString());
+        log("Block idler items set to " + ((Boolean) blockIdleItems).toString(), Level.INFO);
 
         settings.saveSettings(getDataFolder());
 
@@ -626,13 +631,13 @@ public class AfkBooter extends JavaPlugin
                         // Stop tracking them, since we're booting them.
                         lastPlayerActivity.remove(playerName);
                         if(player.isOnline())
-                            player.kickPlayer(kickMessage);
+                            player.kickPlayer(settings.getKickMessage());
                         else
                             continue;
 
                         // Don't output the broadcast message if it's set to empty or null.
-                        if(kickBroadcastMessage != null && !kickBroadcastMessage.isEmpty())
-                            getServer().broadcastMessage(ChatColor.YELLOW + playerName + " " + kickBroadcastMessage);
+                        if(settings.getKickBroadcastMessage() != null && !settings.getKickBroadcastMessage().isEmpty())
+                            getServer().broadcastMessage(ChatColor.YELLOW + playerName + " " + settings.getKickBroadcastMessage());
                     }
                 }
 
@@ -647,83 +652,22 @@ public class AfkBooter extends JavaPlugin
         return settings;
     }
 
-    /**
-     * The two methods below are for the old method of gathering settings which attempted to use the getConfiguration()
-     * method of the JavaPlugin class.  Unfortunately I was never able to get this to work, so they languish here for
-     * now.
-     *
-     * @param dataFolder The config folder location.
-     */
-    @SuppressWarnings({"UnusedDeclaration"})
-    private void firstRunSettings(File dataFolder)
+    public AfkBooterEventCatalog getEventCatalog()
     {
-        log("Configuration file not found, creating new one.", Level.INFO);
-        if(!dataFolder.mkdirs())
-            log("Failed creating settings directory!", Level.SEVERE);
-
-        File configFile = new File(dataFolder, "config.yml");
-        try
-        {
-            if(!configFile.createNewFile())
-                throw new IOException("Failed file creation");
-        }
-        catch(IOException e)
-        {
-            log("Could not create config file!", Level.SEVERE);
-        }
-
-        writeSettings(configFile);
+        return eventCatalog;
     }
 
-    private void writeSettings(File configFile)
+    public boolean isPlayerIdle(String playerName)
     {
-        FileWriter fileWriter = null;
-        BufferedWriter bufferWriter = null;
-        try
+        // Check if we're kicking idlers, if we are, they're obviously not idle.
+        if(!settings.isKickIdlers())
         {
-            if(!configFile.exists())
-                configFile.createNewFile();
-
-            fileWriter = new FileWriter(configFile);
-            bufferWriter = new BufferedWriter(fileWriter);
-            bufferWriter.append("kickTimeout: ");
-            bufferWriter.append(((Integer) kickTimeout).toString());
-            bufferWriter.append("  # Amount of time (seconds) to allow a person to be idle before kicking them.");
-            bufferWriter.newLine();
-
-            bufferWriter.append("kickMesssage: ");
-            bufferWriter.append(kickMessage);
-            bufferWriter.append("  # Message to display to player when they are kicked.");
-            bufferWriter.newLine();
-
-            bufferWriter.append("timeoutCheckInterval: ");
-            bufferWriter.append(((Integer) timeoutCheckInterval).toString());
-            bufferWriter.append("  # Amount of time (seconds) between checks for idlers to be kicked.");
-            bufferWriter.newLine();
-            bufferWriter.flush();
-        }
-        catch(IOException e)
-        {
-            log("Caught exception while writing settings to file: ", Level.SEVERE);
-            e.printStackTrace();
-        }
-        finally
-        {
-            try
+            synchronized(playersToKickLock)
             {
-                if(bufferWriter != null)
-                {
-                    bufferWriter.flush();
-                    bufferWriter.close();
-                }
-
-                if(fileWriter != null)
-                    fileWriter.close();
-            }
-            catch(IOException e)
-            {
-                log("IO Exception writing file: " + configFile.getName(), Level.SEVERE);
+                return playersToKick.contains(playerName);
             }
         }
+
+        return false;
     }
 }
