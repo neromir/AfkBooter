@@ -49,7 +49,7 @@ public class AfkBooter extends JavaPlugin
         super();
 
         settings = new AfkBooterSettings(this);
-        eventCatalog = new AfkBooterEventCatalog();
+        eventCatalog = new AfkBooterEventCatalog(this);
     }
 
     public void onEnable()

@@ -4,6 +4,7 @@ import org.bukkit.event.Event;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,35 +14,36 @@ import java.util.List;
  */
 public class AfkBooterEventCatalog
 {
+    private AfkBooter plugin;
     private List<EventInfo> blockEvents;
     private List<EventInfo> playerEvents;
 
-    private List<EventInfo> allEvents;
-
-    public AfkBooterEventCatalog()
+    public AfkBooterEventCatalog(AfkBooter plugin)
     {
+        this.plugin = plugin;
         blockEvents = new LinkedList<EventInfo>();
         playerEvents = new LinkedList<EventInfo>();
-        allEvents = new LinkedList<EventInfo>();
     }
 
     public void initialize(AfkBooterSettings settings)
     {
         for(String eventName : settings.getListedEvents())
         {
-            if(eventName.startsWith("BLOCK"))
-                blockEvents.add(new EventInfo(Event.Type.valueOf(eventName), Event.Priority.Monitor));
-            else
-                playerEvents.add(new EventInfo(Event.Type.valueOf(eventName), Event.Priority.Monitor));
+            try
+            {
+                if(eventName.startsWith("BLOCK"))
+                    blockEvents.add(new EventInfo(Event.Type.valueOf(eventName), Event.Priority.Monitor));
+                else
+                    playerEvents.add(new EventInfo(Event.Type.valueOf(eventName), Event.Priority.Monitor));
+            }
+            catch(IllegalArgumentException e)
+            {
+                plugin.log("Invalid listened-events setting, \"" + eventName + "\" please verify that it is correct.", Level.SEVERE);
+            }
         }
 
         if(settings.isBlockItems())
             playerEvents.add(new EventInfo(Event.Type.PLAYER_PICKUP_ITEM, Event.Priority.High));
-    }
-
-    public List<EventInfo> getAllEvents()
-    {
-        return allEvents;
     }
 
     public List<EventInfo> getPlayerEvents()
