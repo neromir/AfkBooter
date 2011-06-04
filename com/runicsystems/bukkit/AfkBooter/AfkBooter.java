@@ -253,6 +253,8 @@ public class AfkBooter extends JavaPlugin
                 return handleUseFauxSleepCommand(sender, subCommandArgs);
             else if(subCommand.equals("blockidleitems"))
                 return handleBlockIdleItemsCommand(sender, subCommandArgs);
+            else if(subCommand.equals("list"))
+                return handleListAfkPlayersCommand(sender, subCommandArgs);
         }
 
         return false;
@@ -573,6 +575,35 @@ public class AfkBooter extends JavaPlugin
         log("Block idler items set to " + ((Boolean) blockIdleItems).toString(), Level.INFO);
 
         settings.saveSettings(getDataFolder());
+
+        return true;
+    }
+
+    private boolean handleListAfkPlayersCommand(CommandSender sender, ArrayList<String> args)
+    {
+        if(!args.isEmpty())
+            return false;
+
+        if(!sender.isOp() && !(isPlayer(sender) && hasPermission((Player) sender, PERMISSIONS_CONFIG)))
+        {
+            sender.sendMessage("You do not have permission to view the list of idle players.");
+            return true;
+        }
+
+        StringBuilder afkList = new StringBuilder();
+
+        synchronized(playersToKickLock)
+        {
+            for(String playerName : playersToKick)
+            {
+                afkList.append(playerName);
+                afkList.append(", ");
+            }
+        }
+
+        // Chop off the last comma and space.
+        afkList.setLength(afkList.length() - 2);
+        sender.sendMessage("AFK players: " + afkList.toString());
 
         return true;
     }

@@ -1,6 +1,6 @@
 name: AfkBooter
 main: com.runicsystems.bukkit.AfkBooter.AfkBooter
-version: 1.0.1
+version: 1.0.2
 author: Neromir
 
 commands:
@@ -20,3 +20,4 @@ commands:
            Example: /<command> ignoreVehicles [true|false] - Set whether or not to ignore player movement while in vehicles.
            Example: /<command> useFauxSleep [true|false] - Set whether or not to use faux sleep (afk players are considered in bed).
            Example: /<command> blockIdleItems [true|false] - Set whether or not item pickup should be blocked for idlers.
+           Example: /<command> list - List players marked as AFK.

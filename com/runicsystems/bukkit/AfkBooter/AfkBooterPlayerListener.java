@@ -73,6 +73,20 @@ public class AfkBooterPlayerListener extends PlayerListener
     }
 
     @Override
+    public void onPlayerInteract(PlayerInteractEvent event)
+    {
+        if(!event.isCancelled())
+            plugin.recordPlayerActivity(event.getPlayer().getName());
+    }
+
+    @Override
+    public void onPlayerInteractEntity(PlayerInteractEntityEvent event)
+    {
+        if(!event.isCancelled())
+            plugin.recordPlayerActivity(event.getPlayer().getName());
+    }
+
+    @Override
     public void onPlayerPickupItem(PlayerPickupItemEvent event)
     {
         if(!plugin.getSettings().isKickIdlers() && plugin.getSettings().isBlockItems() &&
