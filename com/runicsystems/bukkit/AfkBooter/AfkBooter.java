@@ -602,7 +602,9 @@ public class AfkBooter extends JavaPlugin
         }
 
         // Chop off the last comma and space.
-        afkList.setLength(afkList.length() - 2);
+        if(afkList.length() > 2)
+            afkList.setLength(afkList.length() - 2);
+
         sender.sendMessage("AFK players: " + afkList.toString());
 
         return true;
