@@ -54,8 +54,7 @@ public class AfkBooterPlayerListener extends PlayerListener
     @Override
     public void onPlayerChat(PlayerChatEvent event)
     {
-        if(!event.isCancelled())
-            plugin.recordPlayerActivity(event.getPlayer().getName());
+        plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
     @Override
@@ -68,8 +67,7 @@ public class AfkBooterPlayerListener extends PlayerListener
     @Override
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
     {
-        if(!event.isCancelled())
-            plugin.recordPlayerActivity(event.getPlayer().getName());
+        plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
     @Override
