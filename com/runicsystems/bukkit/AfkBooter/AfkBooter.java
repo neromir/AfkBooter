@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
+import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
@@ -41,6 +42,7 @@ public class AfkBooter extends JavaPlugin
 
     private long lastKickAttempt;
     private Logger logger;
+    private MovementTracker movementTracker;
 
     public static PermissionHandler permissions;
 
@@ -81,6 +83,8 @@ public class AfkBooter extends JavaPlugin
         }
         log("Kick timeout " + settings.getKickTimeout() + " sec, exempt players: " + exemptPlayers, Level.INFO);
 
+        movementTracker = new MovementTracker(this);
+        
         // Register our events
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
@@ -88,11 +92,17 @@ public class AfkBooter extends JavaPlugin
 
         // Retrieve and register for block events as specified by admin.
         for(AfkBooterEventCatalog.EventInfo blockEvent : eventCatalog.getBlockEvents())
-            pm.registerEvent(blockEvent.type, blockListener, blockEvent.priority, this);
+    		pm.registerEvent(blockEvent.type, blockListener, blockEvent.priority, this);
 
         // Retrieve and register for player events as specified by admin.
         for(AfkBooterEventCatalog.EventInfo playerEvent : eventCatalog.getPlayerEvents())
-            pm.registerEvent(playerEvent.type, playerListener, playerEvent.priority, this);
+        	if( playerEvent.type == Type.PLAYER_MOVE ) {
+        		// set movement check to 1/4th of kick timeout (since this is based on
+        		// ticks, while original kick thread is not)
+        		getServer().getScheduler().scheduleAsyncRepeatingTask(this, movementTracker, 200, (settings.getKickTimeout()*5) - 3);
+        	}
+        	else
+        		pm.registerEvent(playerEvent.type, playerListener, playerEvent.priority, this);
     }
 
     public void onDisable()
@@ -110,6 +120,7 @@ public class AfkBooter extends JavaPlugin
         }
         // NOTE: All registered events are automatically unregistered when a plugin is disabled
 
+        getServer().getScheduler().cancelTasks(this);
         log("Shutting down AfkBooter.", Level.INFO);
     }
 
