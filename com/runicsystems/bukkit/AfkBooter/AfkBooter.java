@@ -1,23 +1,25 @@
 package com.runicsystems.bukkit.AfkBooter;
 
-import com.nijiko.permissions.PermissionHandler;
-import com.nijikokun.bukkit.Permissions.Permissions;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.Event.Priority;
-import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import com.nijiko.permissions.PermissionHandler;
+import com.nijikokun.bukkit.Permissions.Permissions;
 
 /**
  * AfkBooter for Bukkit
@@ -42,7 +44,7 @@ public class AfkBooter extends JavaPlugin
 
     private long lastKickAttempt;
     private Logger logger;
-    private MovementTracker movementTracker;
+//    private MovementTracker movementTracker;
 
     public static PermissionHandler permissions;
 
@@ -83,26 +85,14 @@ public class AfkBooter extends JavaPlugin
         }
         log("Kick timeout " + settings.getKickTimeout() + " sec, exempt players: " + exemptPlayers, Level.INFO);
 
-        movementTracker = new MovementTracker(this);
+        getServer().getPluginManager().registerEvents(playerListener, this);
+        eventCatalog.registerEvents();
+
+//        movementTracker = new MovementTracker(this);
         
-        // Register our events
-        PluginManager pm = getServer().getPluginManager();
-        pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
-        pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
-
-        // Retrieve and register for block events as specified by admin.
-        for(AfkBooterEventCatalog.EventInfo blockEvent : eventCatalog.getBlockEvents())
-    		pm.registerEvent(blockEvent.type, blockListener, blockEvent.priority, this);
-
-        // Retrieve and register for player events as specified by admin.
-        for(AfkBooterEventCatalog.EventInfo playerEvent : eventCatalog.getPlayerEvents())
-        	if( playerEvent.type == Type.PLAYER_MOVE ) {
-        		// set movement check to 1/4th of kick timeout (since this is based on
-        		// ticks, while original kick thread is not)
-        		getServer().getScheduler().scheduleAsyncRepeatingTask(this, movementTracker, 200, (settings.getKickTimeout()*5) - 3);
-        	}
-        	else
-        		pm.registerEvent(playerEvent.type, playerListener, playerEvent.priority, this);
+		// set movement check to 1/4th of kick timeout (since this is based on
+		// ticks, while original kick thread is not)
+//		getServer().getScheduler().scheduleAsyncRepeatingTask(this, movementTracker, 200, (settings.getKickTimeout()*5) - 3);
     }
 
     public void onDisable()
@@ -123,6 +113,9 @@ public class AfkBooter extends JavaPlugin
         getServer().getScheduler().cancelTasks(this);
         log("Shutting down AfkBooter.", Level.INFO);
     }
+    
+    public AfkBooterPlayerListener getPlayerListener() { return playerListener; }
+    public AfkBooterBlockListener getBlockListener() { return blockListener; }
 
     private void setupPermissions()
     {
@@ -579,8 +572,8 @@ public class AfkBooter extends JavaPlugin
         boolean blockIdleItems = Boolean.parseBoolean(args.get(0));
 
         settings.setBlockItems(blockIdleItems);
-        if(blockIdleItems)
-            getServer().getPluginManager().registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Event.Priority.High, this);
+//        if(blockIdleItems)
+//            getServer().getPluginManager().registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Event.Priority.High, this);
 
         sender.sendMessage("Block idler items set to " + ((Boolean) blockIdleItems).toString());
         log("Block idler items set to " + ((Boolean) blockIdleItems).toString(), Level.INFO);

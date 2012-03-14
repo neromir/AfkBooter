@@ -1,13 +1,25 @@
 package com.runicsystems.bukkit.AfkBooter;
 
-import org.bukkit.event.player.*;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.PlayerChatEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 /**
  * Handle events for all Player related events
  *
- * @author neromir
+ * @author neromir, morganm
  */
-public class AfkBooterPlayerListener extends PlayerListener
+public class AfkBooterPlayerListener implements Listener
 {
     private final AfkBooter plugin;
 
@@ -16,7 +28,24 @@ public class AfkBooterPlayerListener extends PlayerListener
         plugin = instance;
     }
 
-    @Override
+    /* onPlayerJoin and onPlayerQuit are always hooked, so they are defined here with
+     * Bukkit annotations to indicate that. All the other event methods are dynamically
+     * hooked based on the config file as defined by the admin, so they are only hooked
+     * if configured to do so. Hooking handled externally in AfkBooterEventCatalog.
+     */
+    
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent event)
+    {
+        plugin.recordPlayerActivity(event.getPlayer().getName());
+    }
+
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event)
+    {
+        plugin.stopTrackingPlayer(event.getPlayer().getName());
+    }
+
     public void onPlayerMove(PlayerMoveEvent event)
     {
         if(event.isCancelled())
@@ -33,58 +62,39 @@ public class AfkBooterPlayerListener extends PlayerListener
         plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
-    @Override
-    public void onPlayerJoin(PlayerJoinEvent event)
+    public void onInventoryOpen(InventoryOpenEvent event)
     {
         plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
-    @Override
-    public void onPlayerQuit(PlayerQuitEvent event)
-    {
-        plugin.stopTrackingPlayer(event.getPlayer().getName());
-    }
-
-    @Override
-    public void onInventoryOpen(PlayerInventoryEvent event)
-    {
-        plugin.recordPlayerActivity(event.getPlayer().getName());
-    }
-
-    @Override
     public void onPlayerChat(PlayerChatEvent event)
     {
         plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
-    @Override
     public void onPlayerDropItem(PlayerDropItemEvent event)
     {
         if(!event.isCancelled())
             plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
-    @Override
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
     {
         plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
-    @Override
     public void onPlayerInteract(PlayerInteractEvent event)
     {
         if(!event.isCancelled())
             plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
-    @Override
     public void onPlayerInteractEntity(PlayerInteractEntityEvent event)
     {
         if(!event.isCancelled())
             plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
-    @Override
     public void onPlayerPickupItem(PlayerPickupItemEvent event)
     {
         if(!plugin.getSettings().isKickIdlers() && plugin.getSettings().isBlockItems() &&

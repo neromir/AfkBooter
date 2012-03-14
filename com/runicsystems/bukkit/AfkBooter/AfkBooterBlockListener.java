@@ -1,15 +1,15 @@
 package com.runicsystems.bukkit.AfkBooter;
 
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPlaceEvent;
 
 /**
  * AfkBooter block listener
  *
- * @author neromir
+ * @author neromir, morganm
  */
-public class AfkBooterBlockListener extends BlockListener
+public class AfkBooterBlockListener implements Listener
 {
     private final AfkBooter plugin;
 
@@ -18,13 +18,11 @@ public class AfkBooterBlockListener extends BlockListener
         this.plugin = plugin;
     }
 
-    @Override
     public void onBlockPlace(BlockPlaceEvent event)
     {
         plugin.recordPlayerActivity(event.getPlayer().getName());
     }
 
-    @Override
     public void onBlockBreak(BlockBreakEvent event)
     {
         if(event.getPlayer() != null)
