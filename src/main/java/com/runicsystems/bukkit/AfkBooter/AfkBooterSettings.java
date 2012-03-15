@@ -1,10 +1,17 @@
 package com.runicsystems.bukkit.AfkBooter;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -146,11 +153,9 @@ public class AfkBooterSettings
             // Set the values for listening properties.
             // Stick all of the events we're currently listening to into a comma-delimeted list.
             StringBuilder listenedEvents = new StringBuilder();
-            List<AfkBooterEventCatalog.EventInfo> eventsList = plugin.getEventCatalog().getPlayerEvents();
-            eventsList.addAll(plugin.getEventCatalog().getBlockEvents());
-            for(AfkBooterEventCatalog.EventInfo eventInfo : eventsList)
-            {
-                listenedEvents.append(eventInfo.type.toString());
+            Set<AfkBooterEventCatalog.Type> events = plugin.getEventCatalog().getEvents();
+            for(AfkBooterEventCatalog.Type type : events) {
+            	listenedEvents.append(type.toString());
                 listenedEvents.append(",");
             }
             // Lop off the last trailing comma.

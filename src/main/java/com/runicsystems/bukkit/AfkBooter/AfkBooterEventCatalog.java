@@ -1,5 +1,6 @@
 package com.runicsystems.bukkit.AfkBooter;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -67,6 +68,8 @@ public class AfkBooterEventCatalog
 //        if(settings.isBlockItems())
 //            playerEvents.add(new EventInfo(Event.Type.PLAYER_PICKUP_ITEM, Event.Priority.High));
     }
+    
+    public Set<Type> getEvents() { return Collections.unmodifiableSet(events); }
 
     /** This is ugly. New-style Bukkit events have a lot of advantages, but dynamic
      * registry of events is NOT one of them. There are 3 options for handling this:

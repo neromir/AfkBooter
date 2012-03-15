@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<project name="AfkBooter" default="dist" basedir=".">
+        <property file="${basedir}/build.local.properties" />
+        <property file="${basedir}/build.properties" />
+
+	<path id="project.classpath">
+		<fileset dir="${lib.home}">
+			<include name="**/*.jar" />
+			<include name="**/*.zip" />
+		</fileset>
+		<pathelement path="${build.home}" />
+	</path>
+
+	<target name="prepare">
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+	</target>
+
+	<target name="clean" description="Remove all generated files.">
+		<delete dir="${build.home}" />
+		<delete dir="${dist.home}" />
+	</target>
+
+	<target name="compile" depends="prepare" description="Compile all source code">
+		<javac srcdir="${src.home}" destdir="${build.home}" >
+			<classpath refid="project.classpath" />
+		</javac>
+	</target>
+
+	<target name="dist" depends="compile" description="Generates distribution jar file">
+                <buildnumber />
+		<copy todir="${build.home}">
+			<fileset dir="${config.home}">
+				<include name="**/*.yml"/>
+			</fileset>
+			<fileset dir="${basedir}" >
+				<include name="build.number"/>
+			</fileset>
+		</copy>
+
+		<jar jarfile="${jarfile}" >
+			<fileset dir="${build.home}" />
+		</jar>
+	</target>
+
+</project>

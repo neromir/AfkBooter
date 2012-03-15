@@ -1,0 +1,17 @@
+v1.1 - March 15, 2012
+* R6 events update (no changes required to config files)
+* fixed INVENTORY_OPEN with new events
+* disabled alternate PLAYER_MOVE checks for now, on suspicion it may have been causing the occasional unexpected kick
+* enabled Permission caching, since every event does a permission check (for exempt) and some permission systems are known to not be very efficient. Permission checks are cached for 60 seconds, which for frequently called events (PLAYER_MOVE, BLOCK_BREAK, etc) will significantly reduce the number of permission calls made.
+* added ant build automation to source
+
+v1.0.5 - February 1, 2012
+* compiled against latest RB #1846, which fixes 1.1 compatibility issue
+
+v1.0.4 - December 18, 2011
+* fixed a bug related to HeroChat (and possibly other chat plugins?) in which chatting was not being counted towards player activity
+* removed PLAYER_MOVE hook and switched to a more efficient polling cycle
+* compiled against latest RB #1597
+
+v1.0.3 - July 4, 2011
+* last release from @Neromir

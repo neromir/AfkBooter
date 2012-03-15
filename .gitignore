@@ -3,3 +3,5 @@ dist
 META-INF
 .classpath
 .project
+bin
+lib

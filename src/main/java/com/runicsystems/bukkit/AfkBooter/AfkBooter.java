@@ -2,6 +2,7 @@ package com.runicsystems.bukkit.AfkBooter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -133,12 +134,41 @@ public class AfkBooter extends JavaPlugin
         }
     }
 
+    private final Map<String, Map<String, PermissionResult>> permCache = new HashMap<String, Map<String, PermissionResult>>();
+    private final int MAX_CACHE_TIME = 60000;	// 1 minute
     private boolean hasPermission(Player player, String permission)
     {
-        if(player == null)
+        if(player == null || permissions == null)
             return false;
 
-        return permissions != null && permissions.has(player, permission);
+        final String playerName = player.getName();
+        
+        // because permissions are checked on EVERY event, including PLAYER_MOVE (looking
+        // for exempt permissions) and some permission systems are notoriously slow, we
+        // cache permission results for a performance boost.
+        Map<String, PermissionResult> cachedPlayerPermissions = permCache.get(playerName);
+        if(  cachedPlayerPermissions == null ) {
+        	cachedPlayerPermissions = new HashMap<String, PermissionResult>();
+        	permCache.put(playerName, cachedPlayerPermissions);
+        }
+        
+        PermissionResult result = cachedPlayerPermissions.get(permission);
+        if( result == null ) {
+        	result = new PermissionResult();
+        	cachedPlayerPermissions.put(permission, result);
+        }
+        
+        // if the last cached result has exceeded cache timeout, check again
+        if( (System.currentTimeMillis() - result.timestamp) > MAX_CACHE_TIME ) {
+        	result.timestamp = System.currentTimeMillis();
+        	result.result = permissions.has(player,  permission);
+        }
+
+        return result.result;
+    }
+    private class PermissionResult {
+    	long timestamp=0;
+    	boolean result = false;		// fail closed
     }
 
     public void kickAfkPlayers()
