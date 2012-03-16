@@ -1,4 +1,4 @@
-v1.1 - March 15, 2012
+v1.1-beta1 - March 15, 2012
 * R6 events update (no changes required to config files)
 * fixed INVENTORY_OPEN with new events
 * disabled alternate PLAYER_MOVE checks for now, on suspicion it may have been causing the occasional unexpected kick

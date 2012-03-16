@@ -18,6 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.morganm.bukkit.util.JarUtils;
 
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
@@ -45,6 +46,8 @@ public class AfkBooter extends JavaPlugin
 
     private long lastKickAttempt;
     private Logger logger;
+    private JarUtils jarUtils;
+	private int buildNumber = -1;
 //    private MovementTracker movementTracker;
 
     public static PermissionHandler permissions;
@@ -62,6 +65,9 @@ public class AfkBooter extends JavaPlugin
         logger = Logger.getLogger("Minecraft");
         setupPermissions();
 
+    	jarUtils = new JarUtils(this, getFile(), logger, "[AfkBooter]");
+		buildNumber = jarUtils.getBuildNumber();
+		
         settings.init(getDataFolder());
         eventCatalog.initialize(settings);
         lastKickAttempt = System.currentTimeMillis();
@@ -72,9 +78,6 @@ public class AfkBooter extends JavaPlugin
         threadedTimer.setAborted(false);
         threadedTimer.start();
 
-        // Get and output some info about the plugin for the log at startup
-        PluginDescriptionFile pdfFile = this.getDescription();
-        log("Version " + pdfFile.getVersion() + " is loaded.", Level.INFO);
         String exemptPlayers = "";
         List<String> exemptPlayerList = settings.getExemptPlayers();
         for(int i = 0; i < exemptPlayerList.size(); i++)
@@ -94,6 +97,10 @@ public class AfkBooter extends JavaPlugin
 		// set movement check to 1/4th of kick timeout (since this is based on
 		// ticks, while original kick thread is not)
 //		getServer().getScheduler().scheduleAsyncRepeatingTask(this, movementTracker, 200, (settings.getKickTimeout()*5) - 3);
+        
+        // Get and output some info about the plugin for the log at startup
+        PluginDescriptionFile pdfFile = this.getDescription();
+        log("Version " + pdfFile.getVersion() + ", build number "+buildNumber+" is enabled.", Level.INFO);
     }
 
     public void onDisable()
@@ -112,7 +119,9 @@ public class AfkBooter extends JavaPlugin
         // NOTE: All registered events are automatically unregistered when a plugin is disabled
 
         getServer().getScheduler().cancelTasks(this);
-        log("Shutting down AfkBooter.", Level.INFO);
+
+        PluginDescriptionFile pdfFile = this.getDescription();
+        log("Version " + pdfFile.getVersion() + ", build number "+buildNumber+" is disabled.", Level.INFO);
     }
     
     public AfkBooterPlayerListener getPlayerListener() { return playerListener; }
