@@ -198,6 +198,10 @@ public class AfkBooter extends JavaPlugin
         {
             synchronized(playersToKickLock)
             {
+            	// manually run movement tracker, just to be sure movement records are up-to-date.
+            	// it is synchronized and protected from multiple runs, so this is a thread-safe call.
+//            	movementTracker.checkPlayerMovements();
+            	
                 if(lastKickAttempt + FAILED_KICK_LENGTH < now && !playersToKick.isEmpty())
                 {
                     // If we've reached this timeout, log a severe warning and clear the list of idle players.  We should be

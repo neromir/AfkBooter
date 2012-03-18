@@ -19,6 +19,7 @@ import org.bukkit.entity.Player;
 public class MovementTracker implements Runnable {
 	private final AfkBooter plugin;
 	private final HashMap<Player,Location> positions = new HashMap<Player,Location>(20);
+	private boolean isRunning = false;
 	
 	public MovementTracker(AfkBooter plugin) {
 		this.plugin = plugin;
@@ -28,27 +29,44 @@ public class MovementTracker implements Runnable {
 		positions.remove(p);
 	}
 	
-	public void run() {
-		Player[] players = plugin.getServer().getOnlinePlayers();
-		for(Player p : players) {
-			Location curPos = p.getLocation();
-			Location prevPos = positions.get(p);
-			if( prevPos == null ) {
-				positions.put(p, curPos);
-				continue;
+	public void checkPlayerMovements() {
+		if( isRunning )
+			return;
+		
+		synchronized(MovementTracker.class) {
+			try {
+				isRunning = true;
+				
+				Player[] players = plugin.getServer().getOnlinePlayers();
+				for(Player p : players) {
+					Location curPos = p.getLocation();
+					Location prevPos = positions.get(p);
+					if( prevPos == null ) {
+						positions.put(p, curPos);
+						continue;
+					}
+					positions.put(p, curPos);
+
+					String curWorld = curPos.getWorld().getName();
+					String prevWorld = prevPos.getWorld().getName();
+
+					if( !curWorld.equals(prevWorld)
+							|| curPos.getBlockX() != prevPos.getBlockX()
+							|| curPos.getBlockY() != prevPos.getBlockY()
+							|| curPos.getBlockZ() != prevPos.getBlockZ() ) {
+						// player moved
+						plugin.recordPlayerActivity(p.getName());
+					}
+				}
 			}
-			positions.put(p, curPos);
-			
-			String curWorld = curPos.getWorld().getName();
-			String prevWorld = prevPos.getWorld().getName();
-			
-			if( !curWorld.equals(prevWorld)
-					|| curPos.getBlockX() != prevPos.getBlockX()
-					|| curPos.getBlockY() != prevPos.getBlockY()
-					|| curPos.getBlockZ() != prevPos.getBlockZ() ) {
-				// player moved
-		        plugin.recordPlayerActivity(p.getName());
+			finally {
+				isRunning = false;
 			}
 		}
+		
+	}
+	
+	public void run() {
+		checkPlayerMovements();
 	}
 }
