@@ -3,5 +3,8 @@ dist
 META-INF
 .classpath
 .project
+.settings
 bin
 lib
+target
+dependency-reduced-pom.xml

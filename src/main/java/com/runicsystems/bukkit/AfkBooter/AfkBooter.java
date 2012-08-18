@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.morganm.bukkit.util.JarUtils;
+import org.morganm.mBukkitLib.JarUtils;
 
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
@@ -65,7 +65,7 @@ public class AfkBooter extends JavaPlugin
         logger = Logger.getLogger("Minecraft");
         setupPermissions();
 
-    	jarUtils = new JarUtils(this, getFile(), logger, "[AfkBooter]");
+    	jarUtils = new JarUtils(this, getLogger(), getFile());
 		buildNumber = jarUtils.getBuildNumber();
 		
         settings.init(getDataFolder());

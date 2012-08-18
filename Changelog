@@ -1,3 +1,6 @@
+v1.2 -
+* converted project to maven for easier project maintenance by other devs (and myself)
+
 v1.1-beta1 - March 15, 2012
 * R6 events update (no changes required to config files)
 * fixed INVENTORY_OPEN with new events
