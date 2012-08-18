@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.runicsystems.bukkit.AfkBooter</groupId>
   <artifactId>AfkBooter</artifactId>
-  <version>1.2-SNAPSHOT</version>
+  <version>1.2</version>
   <name>AfkBooter</name>
   <description>CraftBukkit/SignLift compatible open source Lift Signs for Bukkit</description>
   <url>https://dev.bukkit.org/server-mods/AfkBooter/</url>
