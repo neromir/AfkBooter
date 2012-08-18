@@ -12,7 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
-import org.bukkit.event.player.PlayerChatEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -131,13 +131,13 @@ public class AfkBooterEventCatalog
     		} break;
 			
     		case PLAYER_CHAT: {
-    	        pm.registerEvent(PlayerChatEvent.class,
+    	        pm.registerEvent(AsyncPlayerChatEvent.class,
     	        		playerListener,
     	        		EventPriority.MONITOR,
     	        		new EventExecutor() {
     	        			public void execute(Listener listener, Event event) throws EventException {
     	        				try {
-    	        					playerListener.onPlayerChat((PlayerChatEvent) event);
+    	        					playerListener.onPlayerChat((AsyncPlayerChatEvent) event);
     	        				} catch (Throwable t) {
     	        					throw new EventException(t);
     	        				}

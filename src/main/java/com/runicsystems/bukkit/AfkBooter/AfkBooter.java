@@ -662,7 +662,7 @@ public class AfkBooter extends JavaPlugin
         logger.log(logLevel, "[AfkBooter] " + logMessage);
     }
 
-    public void recordPlayerActivity(String playerName)
+    public synchronized void recordPlayerActivity(String playerName)
     {
         // Don't even record them if their name is on the exempt list.
         if(settings.getExemptPlayers().contains(playerName) || hasPermission(getServer().getPlayer(playerName), PERMISSIONS_EXEMPT))
