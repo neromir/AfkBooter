@@ -15,13 +15,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.morganm.mBukkitLib.JarUtils;
-
-import com.nijiko.permissions.PermissionHandler;
-import com.nijikokun.bukkit.Permissions.Permissions;
 
 /**
  * AfkBooter for Bukkit
@@ -46,11 +41,7 @@ public class AfkBooter extends JavaPlugin
 
     private long lastKickAttempt;
     private Logger logger;
-    private JarUtils jarUtils;
-	private int buildNumber = -1;
 //    private MovementTracker movementTracker;
-
-    public static PermissionHandler permissions;
 
     public AfkBooter()
     {
@@ -63,11 +54,7 @@ public class AfkBooter extends JavaPlugin
     public void onEnable()
     {
         logger = Logger.getLogger("Minecraft");
-        setupPermissions();
 
-    	jarUtils = new JarUtils(this, getLogger(), getFile());
-		buildNumber = jarUtils.getBuildNumber();
-		
         settings.init(getDataFolder());
         eventCatalog.initialize(settings);
         lastKickAttempt = System.currentTimeMillis();
@@ -100,7 +87,7 @@ public class AfkBooter extends JavaPlugin
         
         // Get and output some info about the plugin for the log at startup
         PluginDescriptionFile pdfFile = this.getDescription();
-        log("Version " + pdfFile.getVersion() + ", build number "+buildNumber+" is enabled.", Level.INFO);
+        log("Version " + pdfFile.getVersion() + " is enabled.", Level.INFO);
     }
 
     public void onDisable()
@@ -121,33 +108,17 @@ public class AfkBooter extends JavaPlugin
         getServer().getScheduler().cancelTasks(this);
 
         PluginDescriptionFile pdfFile = this.getDescription();
-        log("Version " + pdfFile.getVersion() + ", build number "+buildNumber+" is disabled.", Level.INFO);
+        log("Version " + pdfFile.getVersion() + " is disabled.", Level.INFO);
     }
     
     public AfkBooterPlayerListener getPlayerListener() { return playerListener; }
     public AfkBooterBlockListener getBlockListener() { return blockListener; }
 
-    private void setupPermissions()
-    {
-        Plugin test = this.getServer().getPluginManager().getPlugin("Permissions");
-
-        if(permissions == null)
-        {
-            if(test != null)
-            {
-                log("Permissions detected, attaching.", Level.INFO);
-                permissions = ((Permissions) test).getHandler();
-            }
-            else
-                log("Permissions not detected, defaulting to OP permissions.", Level.INFO);
-        }
-    }
-
     private final Map<String, Map<String, PermissionResult>> permCache = new HashMap<String, Map<String, PermissionResult>>();
     private final int MAX_CACHE_TIME = 60000;	// 1 minute
     private boolean hasPermission(Player player, String permission)
     {
-        if(player == null || permissions == null)
+        if(player == null || permission == null)
             return false;
 
         final String playerName = player.getName();
@@ -170,7 +141,7 @@ public class AfkBooter extends JavaPlugin
         // if the last cached result has exceeded cache timeout, check again
         if( (System.currentTimeMillis() - result.timestamp) > MAX_CACHE_TIME ) {
         	result.timestamp = System.currentTimeMillis();
-        	result.result = permissions.has(player,  permission);
+        	result.result = player.hasPermission(permission);
         }
 
         return result.result;
