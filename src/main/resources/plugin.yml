@@ -1,7 +1,8 @@
-name: AfkBooter
+name: ${project.name}
+url: ${project.url}
+version: ${project.version}
 main: com.runicsystems.bukkit.AfkBooter.AfkBooter
-version: 1.0.3
-author: Neromir
+author: Neromir,andune
 
 commands:
   afkbooter:

@@ -1,22 +1,22 @@
 package com.runicsystems.bukkit.AfkBooter;
 
-import com.nijiko.permissions.PermissionHandler;
-import com.nijikokun.bukkit.Permissions.Permissions;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.Event.Priority;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * AfkBooter for Bukkit
@@ -41,8 +41,7 @@ public class AfkBooter extends JavaPlugin
 
     private long lastKickAttempt;
     private Logger logger;
-
-    public static PermissionHandler permissions;
+//    private MovementTracker movementTracker;
 
     public AfkBooter()
     {
@@ -55,7 +54,6 @@ public class AfkBooter extends JavaPlugin
     public void onEnable()
     {
         logger = Logger.getLogger("Minecraft");
-        setupPermissions();
 
         settings.init(getDataFolder());
         eventCatalog.initialize(settings);
@@ -67,9 +65,6 @@ public class AfkBooter extends JavaPlugin
         threadedTimer.setAborted(false);
         threadedTimer.start();
 
-        // Get and output some info about the plugin for the log at startup
-        PluginDescriptionFile pdfFile = this.getDescription();
-        log("Version " + pdfFile.getVersion() + " is loaded.", Level.INFO);
         String exemptPlayers = "";
         List<String> exemptPlayerList = settings.getExemptPlayers();
         for(int i = 0; i < exemptPlayerList.size(); i++)
@@ -81,18 +76,18 @@ public class AfkBooter extends JavaPlugin
         }
         log("Kick timeout " + settings.getKickTimeout() + " sec, exempt players: " + exemptPlayers, Level.INFO);
 
-        // Register our events
-        PluginManager pm = getServer().getPluginManager();
-        pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
-        pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
+        getServer().getPluginManager().registerEvents(playerListener, this);
+        eventCatalog.registerEvents();
 
-        // Retrieve and register for block events as specified by admin.
-        for(AfkBooterEventCatalog.EventInfo blockEvent : eventCatalog.getBlockEvents())
-            pm.registerEvent(blockEvent.type, blockListener, blockEvent.priority, this);
-
-        // Retrieve and register for player events as specified by admin.
-        for(AfkBooterEventCatalog.EventInfo playerEvent : eventCatalog.getPlayerEvents())
-            pm.registerEvent(playerEvent.type, playerListener, playerEvent.priority, this);
+//        movementTracker = new MovementTracker(this);
+        
+		// set movement check to 1/4th of kick timeout (since this is based on
+		// ticks, while original kick thread is not)
+//		getServer().getScheduler().scheduleAsyncRepeatingTask(this, movementTracker, 200, (settings.getKickTimeout()*5) - 3);
+        
+        // Get and output some info about the plugin for the log at startup
+        PluginDescriptionFile pdfFile = this.getDescription();
+        log("Version " + pdfFile.getVersion() + " is enabled.", Level.INFO);
     }
 
     public void onDisable()
@@ -110,31 +105,50 @@ public class AfkBooter extends JavaPlugin
         }
         // NOTE: All registered events are automatically unregistered when a plugin is disabled
 
-        log("Shutting down AfkBooter.", Level.INFO);
+        getServer().getScheduler().cancelTasks(this);
+
+        PluginDescriptionFile pdfFile = this.getDescription();
+        log("Version " + pdfFile.getVersion() + " is disabled.", Level.INFO);
     }
+    
+    public AfkBooterPlayerListener getPlayerListener() { return playerListener; }
+    public AfkBooterBlockListener getBlockListener() { return blockListener; }
 
-    private void setupPermissions()
-    {
-        Plugin test = this.getServer().getPluginManager().getPlugin("Permissions");
-
-        if(permissions == null)
-        {
-            if(test != null)
-            {
-                log("Permissions detected, attaching.", Level.INFO);
-                permissions = ((Permissions) test).getHandler();
-            }
-            else
-                log("Permissions not detected, defaulting to OP permissions.", Level.INFO);
-        }
-    }
-
+    private final Map<String, Map<String, PermissionResult>> permCache = new HashMap<String, Map<String, PermissionResult>>();
+    private final int MAX_CACHE_TIME = 60000;	// 1 minute
     private boolean hasPermission(Player player, String permission)
     {
-        if(player == null)
+        if(player == null || permission == null)
             return false;
 
-        return permissions != null && permissions.has(player, permission);
+        final String playerName = player.getName();
+        
+        // because permissions are checked on EVERY event, including PLAYER_MOVE (looking
+        // for exempt permissions) and some permission systems are notoriously slow, we
+        // cache permission results for a performance boost.
+        Map<String, PermissionResult> cachedPlayerPermissions = permCache.get(playerName);
+        if(  cachedPlayerPermissions == null ) {
+        	cachedPlayerPermissions = new HashMap<String, PermissionResult>();
+        	permCache.put(playerName, cachedPlayerPermissions);
+        }
+        
+        PermissionResult result = cachedPlayerPermissions.get(permission);
+        if( result == null ) {
+        	result = new PermissionResult();
+        	cachedPlayerPermissions.put(permission, result);
+        }
+        
+        // if the last cached result has exceeded cache timeout, check again
+        if( (System.currentTimeMillis() - result.timestamp) > MAX_CACHE_TIME ) {
+        	result.timestamp = System.currentTimeMillis();
+        	result.result = player.hasPermission(permission);
+        }
+
+        return result.result;
+    }
+    private class PermissionResult {
+    	long timestamp=0;
+    	boolean result = false;		// fail closed
     }
 
     public void kickAfkPlayers()
@@ -155,6 +169,10 @@ public class AfkBooter extends JavaPlugin
         {
             synchronized(playersToKickLock)
             {
+            	// manually run movement tracker, just to be sure movement records are up-to-date.
+            	// it is synchronized and protected from multiple runs, so this is a thread-safe call.
+//            	movementTracker.checkPlayerMovements();
+            	
                 if(lastKickAttempt + FAILED_KICK_LENGTH < now && !playersToKick.isEmpty())
                 {
                     // If we've reached this timeout, log a severe warning and clear the list of idle players.  We should be
@@ -182,6 +200,10 @@ public class AfkBooter extends JavaPlugin
             // the current time, boot them-- they've been idle too long.
             if((activityEntry.getValue() + (settings.getKickTimeout() * 1000)) < now)
             {
+                // Ignore exempt players.
+                if(settings.getExemptPlayers().contains(activityEntry.getKey()) || hasPermission(getServer().getPlayer(activityEntry.getKey()), PERMISSIONS_EXEMPT))
+                    return;
+
                 synchronized(playersToKickLock)
                 {
                     // Make sure we don't add them to the list of players to be kicked if they're already on it.
@@ -568,8 +590,8 @@ public class AfkBooter extends JavaPlugin
         boolean blockIdleItems = Boolean.parseBoolean(args.get(0));
 
         settings.setBlockItems(blockIdleItems);
-        if(blockIdleItems)
-            getServer().getPluginManager().registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Event.Priority.High, this);
+//        if(blockIdleItems)
+//            getServer().getPluginManager().registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Event.Priority.High, this);
 
         sender.sendMessage("Block idler items set to " + ((Boolean) blockIdleItems).toString());
         log("Block idler items set to " + ((Boolean) blockIdleItems).toString(), Level.INFO);
@@ -615,7 +637,7 @@ public class AfkBooter extends JavaPlugin
         logger.log(logLevel, "[AfkBooter] " + logMessage);
     }
 
-    public void recordPlayerActivity(String playerName)
+    public synchronized void recordPlayerActivity(String playerName)
     {
         // Don't even record them if their name is on the exempt list.
         if(settings.getExemptPlayers().contains(playerName) || hasPermission(getServer().getPlayer(playerName), PERMISSIONS_EXEMPT))
