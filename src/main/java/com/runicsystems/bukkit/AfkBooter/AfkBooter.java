@@ -200,6 +200,10 @@ public class AfkBooter extends JavaPlugin
             // the current time, boot them-- they've been idle too long.
             if((activityEntry.getValue() + (settings.getKickTimeout() * 1000)) < now)
             {
+                // Ignore exempt players.
+                if(settings.getExemptPlayers().contains(activityEntry.getKey()) || hasPermission(getServer().getPlayer(activityEntry.getKey()), PERMISSIONS_EXEMPT))
+                    return;
+
                 synchronized(playersToKickLock)
                 {
                     // Make sure we don't add them to the list of players to be kicked if they're already on it.

@@ -1,3 +1,7 @@
+v1.3.1 - Jan 3, 2013
+* Protect against odd FurnaceExtractEvent when registering for BlockBreakEvent (user reported stack trace: http://pastebin.com/FwzYPiEh)
+* Fix issue with "afkbooter.exempt" not working properly
+
 v1.3 - Dec 30, 2012
 * update to latest Bukkit API and some code cleanup and simplifications. Please report any bugs you find.
 

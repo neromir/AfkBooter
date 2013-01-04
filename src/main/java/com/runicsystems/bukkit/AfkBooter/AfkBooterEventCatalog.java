@@ -102,6 +102,13 @@ public class AfkBooterEventCatalog
     	        		EventPriority.MONITOR,
     	        		new EventExecutor() {
     	        			public void execute(Listener listener, Event event) throws EventException {
+    	        				// apparently when registering for BlockBreakEvent, you can also get
+    	        				// FurnaceExtractEvents as well...  If we get anything OTHER than
+    	        				// a BlockBreakEvent, just assume Bukkit has lost it's marbles and
+    	        				// bail quietly.
+    	        				if( !(event instanceof BlockBreakEvent) )
+    	        					return;
+
     	        				try {
     	        					blockListener.onBlockBreak((BlockBreakEvent) event);
     	        				} catch (Throwable t) {
